@@ -3,6 +3,10 @@ html, body {
   padding: 0;
 }
 
+.selected {
+  background: red !important;
+}
+
 .game {
   display: flex;
   justify-content: center;

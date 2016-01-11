@@ -42,19 +42,35 @@ function renderHand (hand) {
 
 function makeSelectHandTileReducer (event) {
   return function selectHandTile (state) {
-    const selectedTile = $(event.target).index()
+    const selectedTileIndex = $(event.target).index()
 
-    return Object.assign({}, state, {selectedTile})
+    return Object.assign({}, state, {selectedTile: {location: 'hand', position: selectedTileIndex}})
   }
 }
 
-function makePlaceTileReducer (event) {
-  return function placeTile (state) {
-    const row = $(event.target).parent().index()
-    const column = $(event.target).index()
+function randomLetter () {
+  return String.fromCharCode(Math.round(Math.random() * 25) + 65)
+}
 
-    state.board[row][column] = state.hand[state.selectedTile]
-    state.hand.splice(state.selectedTile, 1)
+function makePlaceTileReducer (event) {
+  const column = $(event.target).index()
+  const row = $(event.target).parent().index()
+
+  return function placeTile (state) {
+    if (state.selectedTile === null) {
+      state.selectedTile = {location: 'board', position: {row, column}}
+
+      return state
+    }
+
+    if (state.selectedTile.location === 'hand') {
+      state.board[row][column] = state.hand[state.selectedTile.position]
+      state.hand.splice(state.selectedTile, 1)
+      state.hand.push(randomLetter())
+    } else {
+      state.board[row][column] = state.board[state.selectedTile.position.row][state.selectedTile.position.column]
+      state.board[state.selectedTile.position.row][state.selectedTile.position.column] = ''
+    }
     state.selectedTile = null
 
     return state
