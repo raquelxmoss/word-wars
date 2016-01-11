@@ -71,6 +71,7 @@ function makePlaceTileReducer (event) {
       state.board[row][column] = state.board[state.selectedTile.position.row][state.selectedTile.position.column]
       state.board[state.selectedTile.position.row][state.selectedTile.position.column] = ''
     }
+
     state.selectedTile = null
 
     return state
