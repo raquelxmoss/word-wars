@@ -1,3 +1,22 @@
-.hello-world {
-  color: #663399;
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+}
+
+.tile {
+  padding: 5px;
+  margin: 2px;
+  min-width: 0.7em;
+  min-height: 0.7em;
+  background: goldenrod;
+  border-radius: 5px;
 }
