@@ -8,9 +8,14 @@ const board = _.range(0, 15).map(function(){
 
 board[5][4] = "A"
 
+const initialState = {
+  board,
+  hand: ["A", "E", "I", "O", "U"]
+}
+
 function renderTile(tile) {
   return (
-    div('.tile', tile)
+    div(`.tile ${tile === "" ? "" : '.active'}`, tile)
   )
 }
 
@@ -27,10 +32,21 @@ function renderBoard (board) {
   )
 }
 
+function renderHand (hand) {
+  return (
+    div('.hand', hand.map(renderTile))
+  )
+}
+
 export default function App ({DOM}) {
-  const state$ = Observable.just(board)
+  const state$ = Observable.just(initialState)
 
   return {
-    DOM: state$.map(renderBoard)
+    DOM: state$.map(({board, hand}) => (
+      div('.game', [
+        renderBoard(board),
+        renderHand(hand)
+      ])
+    ))
   };
 }

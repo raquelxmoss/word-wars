@@ -3,9 +3,17 @@ html, body {
   padding: 0;
 }
 
+.game {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
 .board {
   display: flex;
   flex-direction: column;
+  margin: 10px;
 }
 
 .row {
@@ -17,6 +25,19 @@ html, body {
   margin: 2px;
   min-width: 0.7em;
   min-height: 0.7em;
-  background: goldenrod;
+  background: #D6D6D6;
   border-radius: 5px;
+}
+
+.tile.active {
+  background: goldenrod;
+}
+
+.hand {
+  display: flex;
+  justify-content: center;
+}
+
+.hand .tile {
+  background: goldenrod;
 }
