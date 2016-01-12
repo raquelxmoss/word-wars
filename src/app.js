@@ -57,9 +57,17 @@ function makePlaceTileReducer (event) {
   const row = $(event.target).parent().index()
 
   return function placeTile (state) {
-    if (state.selectedTile === null) {
+    if (state.selectedTile === null && state.board[row][column] !== '') {
       state.selectedTile = {location: 'board', position: {row, column}}
 
+      return state
+    }
+
+    if (state.selectedTile === null) {
+      return state
+    }
+
+    if (state.selectedTile !== null && state.board[row][column] !== '') {
       return state
     }
 
@@ -68,8 +76,10 @@ function makePlaceTileReducer (event) {
       state.hand.splice(state.selectedTile, 1)
       state.hand.push(randomLetter())
     } else {
-      state.board[row][column] = state.board[state.selectedTile.position.row][state.selectedTile.position.column]
-      state.board[state.selectedTile.position.row][state.selectedTile.position.column] = ''
+      const position = state.selectedTile.position
+
+      state.board[row][column] = state.board[position.row][position.column]
+      state.board[position.row][position.column] = ''
     }
 
     state.selectedTile = null
@@ -105,10 +115,11 @@ export default function App ({DOM}) {
     .do(console.log.bind(console, 'state'))
 
   return {
-    DOM: state$.map(({board, hand}) => (
+    DOM: state$.map(({board, hand, selectedTile}) => (
       div('.game', [
         renderBoard(board),
-        renderHand(hand)
+        renderHand(hand),
+        JSON.stringify(selectedTile)
       ])
     ))
   };
