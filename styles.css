@@ -49,3 +49,9 @@ html, body {
 .hand .tile {
   background: goldenrod;
 }
+
+.enemy {
+  width: 20px;
+  height: 20px;
+  background: green;
+}

@@ -28,6 +28,7 @@
     "@cycle/core": "^6.0.0-rc2",
     "@cycle/dom": "^8.0.0-rc3",
     "babel-preset-es2015": "^6.1.18",
+    "cycle-animation-driver": "^0.1.1",
     "jquery": "^2.2.0",
     "lodash": "^3.10.1",
     "rx": "^4.0.7"

@@ -14,9 +14,17 @@ const maxBaseHealth = 100;
 
 const initialState = {
   board,
-  hand: ["A", "E", "I", "O", "U"],
+  hand: _.range(0, 10).map(randomLetter),
   selectedTile: null,
-  baseHealth: 100
+  baseHealth: 100,
+  enemies: [
+    {
+      health: 50,
+      x: 30,
+      y: 50,
+      speed: 0.015
+    }
+  ]
 }
 
 function renderTile(tile, baseHealth) {
@@ -54,6 +62,24 @@ function renderBoard (board, baseHealth) {
 function renderHand (hand) {
   return (
     div('.hand', hand.map(renderTile))
+  )
+}
+
+function renderEnemy (enemy) {
+  const style = {
+    position: 'absolute',
+    left: enemy.x + 'px',
+    top: enemy.y + 'px'
+  }
+
+  return (
+    div('.enemy', {style})
+  )
+}
+
+function renderEnemies (enemies) {
+  return (
+    div('.enemies', enemies.map(renderEnemy))
   )
 }
 
@@ -105,7 +131,36 @@ function makePlaceTileReducer (event) {
   }
 }
 
-export default function App ({DOM}) {
+function makeMoveEnemiesReducer (deltaTime, basePosition) {
+  return function moveEnemies (state) {
+    state.enemies.forEach(enemy => {
+      const distanceToBase = {
+        x: Math.abs(basePosition.left - enemy.x),
+        y: Math.abs(basePosition.top - enemy.y)
+      }
+
+      const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
+
+      if (distance < 15) {
+        state.baseHealth -= 0.5;
+        return state;
+      }
+
+      const speed = enemy.speed * deltaTime;
+
+      const angle = Math.atan2(
+        basePosition.top - enemy.y,
+        basePosition.left - enemy.x
+      );
+
+      enemy.x = enemy.x + Math.cos(angle) * speed,
+      enemy.y = enemy.y + Math.sin(angle) * speed
+    })
+    return state;
+  }
+}
+
+export default function App ({DOM, animation}) {
 
   const selectHandTile$ = DOM
     .select('.hand .tile')
@@ -121,21 +176,27 @@ export default function App ({DOM}) {
   const selectHandTileReducer$ = selectHandTile$
     .map(e => makeSelectHandTileReducer(e))
 
+  const moveEnemiesReducer$ = animation.pluck('delta')
+    .map(deltaTime => makeMoveEnemiesReducer(deltaTime, $('.base').position()))
+
   const reducer$ = Observable.merge(
     selectHandTileReducer$,
-    placeTileReducer$
+    placeTileReducer$,
+    moveEnemiesReducer$
   )
 
   const state$ = reducer$
     .startWith(initialState)
     .scan((state, reducer) => reducer(state))
+    .distinctUntilChanged(JSON.stringify)
     .do(console.log.bind(console, 'state'))
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, baseHealth}) => (
+    DOM: state$.map(({board, hand, selectedTile, baseHealth, enemies}) => (
       div('.game', [
         renderBoard(board, baseHealth),
         renderHand(hand),
+        renderEnemies(enemies),
         JSON.stringify(selectedTile),
         baseHealth <= 0 ? 'You lose!' : ''
       ])
