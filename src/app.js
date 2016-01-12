@@ -7,30 +7,47 @@ const board = _.range(0, 15).map(function(){
   return _.range(0, 15).map(() => "")
 })
 
-board[5][4] = "A"
+board[7][7] = "*"
+
+const maxBaseHealth = 100;
+
 
 const initialState = {
   board,
   hand: ["A", "E", "I", "O", "U"],
-  selectedTile: null
+  selectedTile: null,
+  baseHealth: 100
 }
 
-function renderTile(tile) {
+function renderTile(tile, baseHealth) {
+  const tileIsBase = tile === "*";
+
+  let style = {};
+
+
+  if (tileIsBase) {
+    style = {background: `rgba(0, 0, 173, ${baseHealth / maxBaseHealth})`};
+  }
+
   return (
-    div(`.tile ${tile === "" ? "" : '.active'}`, tile)
+    div(
+      `.tile ${tile === "" ? "" : '.active'} ${tileIsBase ? ".base" : ""}`,
+      {style},
+      tile
+    )
   )
 }
 
-function renderRow(row) {
+function renderRow(row, baseHealth) {
   return (
-    div('.row', row.map(renderTile))
+    div('.row', row.map(tile => renderTile(tile, baseHealth)))
   )
 }
 
 
-function renderBoard (board) {
+function renderBoard (board, baseHealth) {
   return (
-    div('.board', board.map(renderRow))
+    div('.board', board.map(row => renderRow(row, baseHealth)))
   )
 }
 
@@ -115,11 +132,12 @@ export default function App ({DOM}) {
     .do(console.log.bind(console, 'state'))
 
   return {
-    DOM: state$.map(({board, hand, selectedTile}) => (
+    DOM: state$.map(({board, hand, selectedTile, baseHealth}) => (
       div('.game', [
-        renderBoard(board),
+        renderBoard(board, baseHealth),
         renderHand(hand),
-        JSON.stringify(selectedTile)
+        JSON.stringify(selectedTile),
+        baseHealth <= 0 ? 'You lose!' : ''
       ])
     ))
   };

@@ -37,6 +37,10 @@ html, body {
   background: goldenrod;
 }
 
+.tile.base {
+  color: white;
+}
+
 .hand {
   display: flex;
   justify-content: center;
