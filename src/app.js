@@ -160,6 +160,19 @@ function makeMoveEnemiesReducer (deltaTime, basePosition) {
   }
 }
 
+function makeSpawnEnemiesReducer () {
+  return function spawnEnemies (state) {
+    state.enemies.push({
+      x: 400,
+      y: 400,
+      health: 30,
+      speed: 0.03
+    })
+
+    return state
+  }
+}
+
 export default function App ({DOM, animation}) {
 
   const selectHandTile$ = DOM
@@ -179,10 +192,14 @@ export default function App ({DOM, animation}) {
   const moveEnemiesReducer$ = animation.pluck('delta')
     .map(deltaTime => makeMoveEnemiesReducer(deltaTime, $('.base').position()))
 
+  const spawnEnemyReducer$ = Observable.interval(10000)
+    .map(e => makeSpawnEnemiesReducer())
+
   const reducer$ = Observable.merge(
     selectHandTileReducer$,
     placeTileReducer$,
-    moveEnemiesReducer$
+    moveEnemiesReducer$,
+    spawnEnemyReducer$
   )
 
   const state$ = reducer$
