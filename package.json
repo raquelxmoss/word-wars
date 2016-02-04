@@ -6,6 +6,7 @@
   "scripts": {
     "start": "babel-node server.js",
     "test": "mocha --compilers js:babel-register",
+    "autotest": "mocha --compilers js:babel-register --watch -R min",
     "bundle": "browserify index.js -t babelify -t uglifyify -o bundle.js"
   },
   "repository": {
@@ -40,6 +41,7 @@
     "browserify": "^12.0.1",
     "browserify-hmr": "^0.3.1",
     "budo": "^6.1.0",
+    "mocha": "^2.4.5",
     "uglifyify": "^3.0.1"
   }
 }
