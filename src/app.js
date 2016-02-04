@@ -4,7 +4,7 @@ import _ from 'lodash';
 import $ from 'jquery';
 
 const board = _.range(0, 15).map(function(){
-  return _.range(0, 15).map(() => "")
+  return _.range(0, 15).map(() => ({active: false, letter: ''}))
 })
 
 board[7][7] = "*"
@@ -14,7 +14,7 @@ const maxBaseHealth = 100;
 
 const initialState = {
   board,
-  hand: _.range(0, 10).map(randomLetter),
+  hand: _.range(0, 10).map(() => ({letter: randomLetter(), active: false})),
   selectedTile: null,
   baseHealth: 100,
   enemies: [
@@ -39,9 +39,9 @@ function renderTile(tile, baseHealth) {
 
   return (
     div(
-      `.tile ${tile === "" ? "" : '.active'} ${tileIsBase ? ".base" : ""}`,
+      `.tile ${tile.letter === "" ? "" : '.active'} ${tileIsBase ? ".base" : ""}`,
       {style},
-      tile
+      tile.letter
     )
   )
 }
@@ -100,7 +100,7 @@ function makePlaceTileReducer (event) {
   const row = $(event.target).parent().index()
 
   return function placeTile (state) {
-    if (state.selectedTile === null && state.board[row][column] !== '') {
+    if (state.selectedTile === null && state.board[row][column].letter !== '') {
       state.selectedTile = {location: 'board', position: {row, column}}
 
       return state
@@ -110,19 +110,19 @@ function makePlaceTileReducer (event) {
       return state
     }
 
-    if (state.selectedTile !== null && state.board[row][column] !== '') {
+    if (state.selectedTile !== null && state.board[row][column].letter !== '') {
       return state
     }
 
     if (state.selectedTile.location === 'hand') {
       state.board[row][column] = state.hand[state.selectedTile.position]
       state.hand.splice(state.selectedTile, 1)
-      state.hand.push(randomLetter())
+      state.hand.push({letter: randomLetter(), active: false})
     } else {
       const position = state.selectedTile.position
 
       state.board[row][column] = state.board[position.row][position.column]
-      state.board[position.row][position.column] = ''
+      state.board[position.row][position.column] = {active: false, letter: ''}
     }
 
     state.selectedTile = null
