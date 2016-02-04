@@ -2,29 +2,52 @@ import validateWord from './word-validation';
 
 function validateRow (row) {
   const wordsInRow = extractWords(row)
+  console.log(wordsInRow)
 
-  return row.map(square => {
+  return row.map((square, index) => {
     if(square.letter !== '') {
+      const wordToValidate = findWordToValidate(wordsInRow, index)
+      console.log(wordToValidate)
       // given a row of letters
       // determine if each letter is part of a valid word
-      return Object.assign({}, square, {active: validateWord(wordsInRow[0])})
+      return Object.assign({}, square, {active: validateWord(wordToValidate)})
     }
     return square
   })
 }
 
-function extractWords (row) {
-  return row.reduce((extractedWords, square) => {
-    if(square.letter === '') { return extractedWords };
+function findWordToValidate (wordsInRow, index) {
+  return wordsInRow.filter(word => word.startIndex <= index && word.endIndex >= index)[0]
+}
 
-    if(extractedWords.length === 1) {
-      extractedWords[0].push(square.letter)
+function extractWords (row) {
+  const wordsInRow = row.reduce((extractedWords, square, index) => {
+    if(square.letter === '' && !extractedWords.currentlyInWord) { return extractedWords };
+    if(square.letter === '' && extractedWords.currentlyInWord) {
+      extractedWords.currentlyInWord = false
+      extractedWords[extractedWords.length - 1].endIndex = index - 1
+      return extractedWords
+    };
+
+    if(extractedWords.currentlyInWord) {
+      extractedWords[extractedWords.length - 1].push(square.letter)
     } else {
-      extractedWords.push([square.letter])
+      const newWord = [square.letter]
+      newWord.startIndex = index
+
+      extractedWords.push(newWord)
+      extractedWords.currentlyInWord = true
     }
 
     return extractedWords
   }, [])
+
+  if(wordsInRow.currentlyInWord) {
+    wordsInRow.currentlyInWord = false
+    wordsInRow[wordsInRow.length - 1].endIndex = row.length - 1
+
+  }
+  return wordsInRow
 }
 
 export default function validateBoard(board) {

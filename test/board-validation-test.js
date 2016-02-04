@@ -28,4 +28,30 @@ describe('validateBoard', () => {
     assert.equal(validatedBoard[0][0].active, false)
     assert.equal(validatedBoard[0][2].active, false)
   })
+
+  it('handles multiple words in a row', () => {
+    const board = [
+      makeRow('  cake  bat')
+    ]
+
+    const validatedBoard = validateBoard(board)
+
+    assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid')
+    assert(validatedBoard[0][2].active, 'first word is valid')
+    assert.equal(validatedBoard[0][7].active, false)
+    assert(validatedBoard[0][9].active)
+  })
+
+  it('handles multiple words in a row', () => {
+    const board = [
+      makeRow('  caze  bat')
+    ]
+
+    const validatedBoard = validateBoard(board)
+
+    assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid')
+    assert.equal(validatedBoard[0][2].active, false, 'first word is invalid')
+    assert.equal(validatedBoard[0][7].active, false)
+    assert(validatedBoard[0][9].active, 'second word is valid')
+  })
 })
