@@ -7,7 +7,7 @@
     "start": "babel-node server.js",
     "test": "mocha --compilers js:babel-core/register",
     "autotest": "mocha --compilers js:babel-core/register --watch -R min",
-    "bundle": "browserify index.js -t babelify -t uglifyify -o bundle.js"
+    "bundle": "browserify index.js -t babelify -t uglifyify -t brfs -o bundle.js"
   },
   "repository": {
     "type": "git",
