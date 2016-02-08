@@ -39,7 +39,7 @@ function renderTile(tile, baseHealth) {
 
 
   if (tileIsBase) {
-    style = {background: `rgba(0, 0, 173, ${baseHealth / maxBaseHealth})`};
+    style = {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`};
   }
 
   return (
@@ -121,7 +121,7 @@ function makePlaceTileReducer (event) {
 
     if (state.selectedTile.location === 'hand') {
       state.board[row][column] = state.hand[state.selectedTile.position]
-      state.hand.splice(state.selectedTile, 1)
+      state.hand.splice(state.selectedTile.position, 1)
       state.hand.push({letter: randomLetter(), active: false})
     } else {
       const position = state.selectedTile.position
@@ -228,7 +228,7 @@ export default function App ({DOM, animation}) {
         renderHand(hand),
         renderEnemies(enemies),
         JSON.stringify(selectedTile),
-        baseHealth <= 0 ? 'You lose!' : ''
+        div(baseHealth <= 0 ? 'You lose!' : '')
       ])
     ))
   };
