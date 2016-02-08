@@ -1,4 +1,4 @@
-/* globals it, describe */
+/* globals xit, describe */
 
 import assert from 'assert';
 import validateBoard from '../src/validate-board';
@@ -13,6 +13,10 @@ function makeRow (rowString) {
 function prettySquare({active, letter}) {
   if (letter === '') {
     return ' '
+  }
+
+  if (letter === '*') {
+    return chalk.blue(letter);
   }
 
   if (active) {
@@ -50,7 +54,7 @@ function makeBoard(board) {
 describe('validateBoard', () => {
   it('sets the validity of each letter of the board', () => {
     const board = [
-      makeRow('  cake  ')
+      makeRow(' *cake  ')
     ]
 
     const validatedBoard = validateBoard(board)
@@ -61,7 +65,7 @@ describe('validateBoard', () => {
 
   it('sets invalid letters to be inactive', () => {
     const board = [
-      makeRow('  czke  ')
+      makeRow(' *czke  ')
     ]
 
     const validatedBoard = validateBoard(board)
@@ -72,33 +76,33 @@ describe('validateBoard', () => {
 
   it('handles multiple words in a row', () => {
     const board = [
-      makeRow('  cake  bat')
+      makeRow('  cake*bat')
     ]
 
     const validatedBoard = validateBoard(board)
 
     assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid')
     assert(validatedBoard[0][2].active, 'first word is valid')
-    assert.equal(validatedBoard[0][7].active, false)
+    assert.equal(validatedBoard[0][7].active, true, 'second word is valid')
     assert(validatedBoard[0][9].active)
   })
 
   it('handles multiple words in a row', () => {
     const board = [
-      makeRow('  caze  bat')
+      makeRow('  caze*bat')
     ];
 
     const validatedBoard = validateBoard(board);
 
     assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid');
     assert.equal(validatedBoard[0][2].active, false, 'first word is invalid');
-    assert.equal(validatedBoard[0][7].active, false);
-    assert(validatedBoard[0][9].active, 'second word is valid');
+    assert(validatedBoard[0][8].active, 'second word is valid');
   });
 
   it('handles columns', () => {
     const board = makeBoard(`
        
+      *
       r
       a
       t
@@ -107,17 +111,18 @@ describe('validateBoard', () => {
     const validatedBoard = validateBoard(board);
 
     assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid');
-    assert.equal(validatedBoard[1][0].active, true, 'rat in column is valid');
-    assert.equal(validatedBoard[3][0].active, true, 'rat in column is valid');
+    assert.equal(validatedBoard[1][0].active, true, 'base is valid');
+    assert.equal(validatedBoard[2][0].active, true, 'rat in column is valid');
+    assert.equal(validatedBoard[4][0].active, true, 'rat in column is valid');
   });
 
-  it('handles columns', () => {
+  it('handles columns with multiple words', () => {
     const board = makeBoard(`
        
       r
       a
       t
-       
+      *
       s
       n
       o
@@ -132,7 +137,6 @@ describe('validateBoard', () => {
     assert.equal(validatedBoard[1][0].active, true, 'rat in column is valid');
     assert.equal(validatedBoard[3][0].active, true, 'rat in column is valid');
 
-    assert.equal(validatedBoard[4][0].active, false, 'second empty tile is invalid');
     assert.equal(validatedBoard[5][0].active, true, 'snow in column is valid');
     assert.equal(validatedBoard[8][0].active, true, 'snow in column is valid');
     assert.equal(validatedBoard[9][0].active, false, 'last empty tile is invalid');
@@ -144,7 +148,7 @@ describe('validateBoard', () => {
       r
       a
       t
-       
+      *
       s
       n
       i
@@ -159,7 +163,6 @@ describe('validateBoard', () => {
     assert.equal(validatedBoard[1][0].active, true, 'rat in column is valid');
     assert.equal(validatedBoard[3][0].active, true, 'rat in column is valid');
 
-    assert.equal(validatedBoard[4][0].active, false, 'second empty tile is invalid');
     assert.equal(validatedBoard[5][0].active, false, 'sniw in column is invalid');
     assert.equal(validatedBoard[8][0].active, false, 'sniw in column is invalid');
     assert.equal(validatedBoard[9][0].active, false, 'last empty tile is invalid');
@@ -171,6 +174,7 @@ describe('validateBoard', () => {
       r
       art
       t
+      *
     `);
 
     const validatedBoard = validateBoard(board);
@@ -185,6 +189,7 @@ describe('validateBoard', () => {
       r
       arz
       t
+      *
     `);
 
     const validatedBoard = validateBoard(board);
@@ -192,6 +197,27 @@ describe('validateBoard', () => {
     assert.equal(validatedBoard[1][0].active, true, 'rat is valid');
     assert.equal(validatedBoard[2][0].active, true, 'the a in rat is valid');
     assert.equal(validatedBoard[2][1].active, false, 'arz is invalid');
+  });
+
+  it("marks words that aren't contiguous with the base as invalid", () => {
+    const board = makeBoard(`
+       
+      r
+      a
+      t
+      *
+      
+      s
+      n
+      a
+      c
+      k
+    `);
+
+    const validatedBoard = validateBoard(board);
+
+    assert.equal(validatedBoard[1][0].active, true, 'rat is valid');
+    assert.equal(validatedBoard[6][0].active, false, 'snack is not touching so is invalid');
   });
 });
 
