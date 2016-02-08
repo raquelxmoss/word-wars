@@ -199,5 +199,25 @@ describe('validateBoard', () => {
     assert.equal(validatedBoard[2][1].active, false, 'arz is invalid');
   });
 
+  it("marks words that aren't contiguous with the base as invalid", () => {
+    const board = makeBoard(`
+       
+      r
+      a
+      t
+      *
+      
+      s
+      n
+      a
+      c
+      k
+    `);
+
+    const validatedBoard = validateBoard(board);
+
+    assert.equal(validatedBoard[1][0].active, true, 'rat is valid');
+    assert.equal(validatedBoard[6][0].active, false, 'snack is not touching so is invalid');
+  });
 });
 

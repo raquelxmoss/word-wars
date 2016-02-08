@@ -19,7 +19,7 @@ function validateRow (board, row, rowIndex) {
       const validInRowWord = validateWord(wordToValidate);
       const validInColumnWord = validateWord(wordToValidateInColumn);
 
-      const active = (validInRowWord || validInColumnWord)
+      const active = (validInRowWord || validInColumnWord);
 
       return Object.assign({}, square, {active});
     }
@@ -64,6 +64,71 @@ function extractWords (row) {
   return wordsInRow;
 }
 
+function findBasePosition (board) {
+  const baseRow = _.findIndex(board, row => row.find(tile => tile.letter === '*'));
+  const baseTile = _.findIndex(board[baseRow], tile => tile.letter === '*');
+
+  return {row: baseRow, column: baseTile};
+}
+
+function findNeighbouringTiles (board, position) {
+  const directions = [
+    {row: +1, column: 0}, // right
+    {row: -1, column: 0}, // left
+    {row: 0, column: +1}, // down
+    {row: 0, column: -1}  // up
+  ];
+
+  const boardHeight = board.length;
+
+  return directions.map(direction => {
+    const neighbourPosition = {row: position.row + direction.row, column: position.column + direction.column};
+
+    if (neighbourPosition.row >= boardHeight || neighbourPosition.row < 0) {
+      return;
+    }
+
+    const neighbour = board[neighbourPosition.row][neighbourPosition.column];
+
+    if (neighbour && neighbour.active) {
+      return neighbourPosition;
+    }
+  }).filter(position => !!position);
+}
+
+function markFloatingWordsInvalid (board) {
+  const basePosition = findBasePosition(board);
+
+  const frontier = [];
+  const visited = [];
+
+  frontier.push(basePosition);
+
+  let currentPosition;
+
+  while (frontier.length >= 1) {
+    currentPosition = frontier.pop();
+    visited.push(currentPosition);
+
+    const neighbouringTiles = findNeighbouringTiles(board, currentPosition);
+
+    const tilesToVisit = neighbouringTiles.filter(tile => !_.find(visited, tile));
+
+    frontier.push(...tilesToVisit);
+  }
+
+  return board.map((row, rowIndex) => {
+    return row.map((tile, columnIndex) => {
+
+      const touchingBase = !!_.find(visited, {row: rowIndex, column: columnIndex});
+
+      return Object.assign({}, tile, {active: tile.active && touchingBase});
+    });
+  });
+}
+
 export default function validateBoard (board) {
-  return board.map((row, rowIndex) => validateRow(board, row, rowIndex));
+  const validatedBoard = board.map((row, rowIndex) => validateRow(board, row, rowIndex));
+
+  return markFloatingWordsInvalid(validatedBoard);
 }
