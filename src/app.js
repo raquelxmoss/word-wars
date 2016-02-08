@@ -3,11 +3,13 @@ import {div} from '@cycle/dom';
 import _ from 'lodash';
 import $ from 'jquery';
 
+import validateBoard from './validate-board';
+
 const board = _.range(0, 15).map(function(){
   return _.range(0, 15).map(() => ({active: false, letter: ''}))
 })
 
-board[7][7] = "*"
+board[7][7] = {letter: "*", active: true}
 
 const maxBaseHealth = 100;
 
@@ -28,7 +30,7 @@ const initialState = {
 }
 
 function renderTile(tile, baseHealth) {
-  const tileIsBase = tile === "*";
+  const tileIsBase = tile.letter === "*";
 
   let style = {};
 
@@ -39,7 +41,7 @@ function renderTile(tile, baseHealth) {
 
   return (
     div(
-      `.tile ${tile.letter === "" ? "" : '.active'} ${tileIsBase ? ".base" : ""}`,
+      `.tile ${tile.letter === "" ? "" : '.active'} ${tile.active ? '.valid' : ''} ${tileIsBase ? ".base" : ""}`,
       {style},
       tile.letter
     )
@@ -127,6 +129,8 @@ function makePlaceTileReducer (event) {
 
     state.selectedTile = null
 
+    state.board = validateBoard(state.board)
+
     return state
   }
 }
@@ -183,6 +187,12 @@ export default function App ({DOM, animation}) {
     .select('.board .tile')
     .events('click')
 
+  const basePosition$ = DOM
+    .select('.base')
+    .observable
+    .map(el => $(el).position())
+    .take(1)
+
   const placeTileReducer$ = boardClick$
     .map(e => makePlaceTileReducer(e))
 
@@ -190,7 +200,7 @@ export default function App ({DOM, animation}) {
     .map(e => makeSelectHandTileReducer(e))
 
   const moveEnemiesReducer$ = animation.pluck('delta')
-    .map(deltaTime => makeMoveEnemiesReducer(deltaTime, $('.base').position()))
+    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeMoveEnemiesReducer(deltaTime, basePosition))
 
   const spawnEnemyReducer$ = Observable.interval(10000)
     .map(e => makeSpawnEnemiesReducer())

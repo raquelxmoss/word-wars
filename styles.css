@@ -37,6 +37,10 @@ html, body {
   background: goldenrod;
 }
 
+.tile.active.valid {
+  background: green;
+}
+
 .tile.base {
   color: white;
 }

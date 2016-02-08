@@ -9,4 +9,8 @@ describe('validateWord', () => {
   it('detects invalid words', () => {
     assert(!validateWord(['h','e','l','z','o']))
   })
+
+  it('dgaf about case', () => {
+    assert(validateWord(['H','O','T']))
+  })
 })
