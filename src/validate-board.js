@@ -34,9 +34,9 @@ function findWordToValidate (wordsInRow, index) {
 
 function extractWords (row) {
   const wordsInRow = row.reduce((extractedWords, square, index) => {
-    if (square.letter === '' && !extractedWords.currentlyInWord) { return extractedWords; }
+    if ((square.letter === '' || square.letter === '*') && !extractedWords.currentlyInWord) { return extractedWords; }
 
-    if (square.letter === '' && extractedWords.currentlyInWord) {
+    if ((square.letter === '' || square.letter === '*') && extractedWords.currentlyInWord) {
       extractedWords.currentlyInWord = false;
       extractedWords[extractedWords.length - 1].endIndex = index - 1;
 
