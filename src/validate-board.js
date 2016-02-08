@@ -16,15 +16,12 @@ function validateRow (board, row, rowIndex) {
 
       const wordToValidateInColumn = findWordToValidate(wordsInColumn, rowIndex);
 
-      const validInRow =
-        wordToValidate.length === 1 ||
-        validateWord(wordToValidate);
+      const validInRowWord = validateWord(wordToValidate);
+      const validInColumnWord = validateWord(wordToValidateInColumn);
 
-      const validInColumn =
-        wordToValidateInColumn.length === 1 ||
-        validateWord(wordToValidateInColumn);
+      const active = (validInRowWord || validInColumnWord)
 
-      return Object.assign({}, square, {active: validInRow && validInColumn});
+      return Object.assign({}, square, {active});
     }
 
     return square;

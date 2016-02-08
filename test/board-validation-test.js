@@ -3,6 +3,7 @@
 import assert from 'assert';
 import validateBoard from '../src/validate-board';
 import chalk from 'chalk';
+import _ from 'lodash';
 
 function makeRow (rowString) {
   return rowString.split('')
@@ -36,7 +37,14 @@ function makeBoard(board) {
 
   const whitespaceAmount = 6;
 
-  return rows.map(row => row.slice(whitespaceAmount)).map(makeRow).filter(row => row.length >= 1);
+  const maxRowWidth = _.max(rows.map(row => row.length)) - whitespaceAmount;
+
+  return rows
+    .map(row => _.padRight(row, maxRowWidth + whitespaceAmount))
+    .map(row => row.slice(whitespaceAmount))
+    .map(makeRow)
+    .filter(row => row.length >= 1)
+    .slice(1);
 }
 
 describe('validateBoard', () => {
@@ -169,6 +177,21 @@ describe('validateBoard', () => {
 
     assert.equal(validatedBoard[1][0].active, true, 'rat is valid');
     assert.equal(validatedBoard[2][1].active, true, 'art is valid');
+  });
+
+  it('handles intersections with invalid words', () => {
+    const board = makeBoard(`
+       
+      r
+      arz
+      t
+    `);
+
+    const validatedBoard = validateBoard(board);
+
+    assert.equal(validatedBoard[1][0].active, true, 'rat is valid');
+    assert.equal(validatedBoard[2][0].active, true, 'the a in rat is valid');
+    assert.equal(validatedBoard[2][1].active, false, 'arz is invalid');
   });
 });
 
