@@ -1,13 +1,30 @@
 import validateWord from './word-validation';
+import _ from 'lodash-transpose';
 
-function validateRow (row) {
+function findWordsInColumn (board, columnIndex) {
+  return extractWords(_.transpose(board)[columnIndex]);
+}
+
+function validateRow (board, row, rowIndex) {
   const wordsInRow = extractWords(row);
 
-  return row.map((square, index) => {
+  return row.map((square, columnIndex) => {
     if (square.letter !== '') {
-      const wordToValidate = findWordToValidate(wordsInRow, index);
+      const wordToValidate = findWordToValidate(wordsInRow, columnIndex);
 
-      return Object.assign({}, square, {active: validateWord(wordToValidate)});
+      const wordsInColumn = findWordsInColumn(board, columnIndex);
+
+      const wordToValidateInColumn = findWordToValidate(wordsInColumn, rowIndex);
+
+      const validInRow =
+        wordToValidate.length === 1 ||
+        validateWord(wordToValidate);
+
+      const validInColumn =
+        wordToValidateInColumn.length === 1 ||
+        validateWord(wordToValidateInColumn);
+
+      return Object.assign({}, square, {active: validInRow && validInColumn});
     }
 
     return square;
@@ -51,5 +68,5 @@ function extractWords (row) {
 }
 
 export default function validateBoard (board) {
-  return board.map(validateRow);
+  return board.map((row, rowIndex) => validateRow(board, row, rowIndex));
 }
