@@ -4,12 +4,15 @@ import _ from 'lodash';
 import $ from 'jquery';
 
 import validateBoard from './validate-board';
+import LetterBag from './letter-bag';
 
 const board = _.range(0, 15).map(function(){
   return _.range(0, 15).map(() => ({active: false, letter: ''}))
 })
 
 board[7][7] = {letter: "*", active: true}
+
+const bag = LetterBag()
 
 const maxBaseHealth = 100;
 
@@ -94,7 +97,7 @@ function makeSelectHandTileReducer (event) {
 }
 
 function randomLetter () {
-  return String.fromCharCode(Math.round(Math.random() * 25) + 65)
+  return bag.draw()
 }
 
 function makePlaceTileReducer (event) {
