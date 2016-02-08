@@ -8,8 +8,6 @@ git merge master --no-commit
 
 npm install
 
-node_modules/rhyme/data/fetch.sh
-
 npm run bundle
 
 git commit -am "Update bundle"
