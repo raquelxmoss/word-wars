@@ -32,7 +32,7 @@ function validateRow (board, row, rowIndex) {
 }
 
 function findWordToValidate (wordsInRow, index) {
-  return wordsInRow.filter(word => word.startIndex <= index && word.endIndex >= index)[0];
+  return wordsInRow.filter(word => word.startIndex <= index && word.endIndex >= index)[0] || [];
 }
 
 function extractWords (row) {
