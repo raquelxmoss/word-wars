@@ -138,32 +138,36 @@ function makePlaceTileReducer (event) {
   }
 }
 
-function makeMoveEnemiesReducer (deltaTime, basePosition) {
-  return function moveEnemies (state) {
-    state.enemies.forEach(enemy => {
-      const distanceToBase = {
-        x: Math.abs(basePosition.left - enemy.x),
-        y: Math.abs(basePosition.top - enemy.y)
-      }
+function moveEnemies (state, deltaTime, basePosition) {
+  state.enemies.forEach(enemy => {
+    const distanceToBase = {
+      x: Math.abs(basePosition.left - enemy.x),
+      y: Math.abs(basePosition.top - enemy.y)
+    }
 
-      const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
+    const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
 
-      if (distance < 15) {
-        state.baseHealth -= 0.5;
-        return state;
-      }
+    if (distance < 15) {
+      state.baseHealth -= 0.5;
+      return state;
+    }
 
-      const speed = enemy.speed * deltaTime;
+    const speed = enemy.speed * deltaTime;
 
-      const angle = Math.atan2(
-        basePosition.top - enemy.y,
-        basePosition.left - enemy.x
-      );
+    const angle = Math.atan2(
+      basePosition.top - enemy.y,
+      basePosition.left - enemy.x
+    );
 
-      enemy.x = enemy.x + Math.cos(angle) * speed,
-      enemy.y = enemy.y + Math.sin(angle) * speed
-    })
-    return state;
+    enemy.x = enemy.x + Math.cos(angle) * speed,
+    enemy.y = enemy.y + Math.sin(angle) * speed
+  })
+  return state;
+}
+
+function makeUpdateReducer (deltaTime, basePosition) {
+  return function update (state) {
+    return moveEnemies(state, deltaTime, basePosition)
   }
 }
 
@@ -202,8 +206,8 @@ export default function App ({DOM, animation}) {
   const selectHandTileReducer$ = selectHandTile$
     .map(e => makeSelectHandTileReducer(e))
 
-  const moveEnemiesReducer$ = animation.pluck('delta')
-    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeMoveEnemiesReducer(deltaTime, basePosition))
+  const update$ = animation.pluck('delta')
+    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
 
   const spawnEnemyReducer$ = Observable.interval(10000)
     .map(e => makeSpawnEnemiesReducer())
@@ -211,7 +215,7 @@ export default function App ({DOM, animation}) {
   const reducer$ = Observable.merge(
     selectHandTileReducer$,
     placeTileReducer$,
-    moveEnemiesReducer$,
+    update$,
     spawnEnemyReducer$
   )
 
