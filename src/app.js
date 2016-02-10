@@ -10,7 +10,7 @@ const board = _.range(0, 15).map(function(){
   return _.range(0, 15).map(() => ({active: false, letter: ''}))
 })
 
-board[7][7] = {letter: "*", active: true}
+board[7][7] = {letter: "*", active: false}
 
 const bag = LetterBag()
 
@@ -22,24 +22,21 @@ const initialState = {
   hand: _.range(0, 10).map(() => ({letter: randomLetter(), active: false})),
   selectedTile: null,
   baseHealth: 100,
-  enemies: [
-    {
-      health: 50,
-      x: 30,
-      y: 50,
-      speed: 0.015
-    }
-  ]
+  enemies: []
 }
 
-function renderTile(tile, baseHealth) {
+function renderTile(tile, baseHealth, {row, column}) {
   const tileIsBase = tile.letter === "*";
+  const position = tilePosition(row, column);
 
-  let style = {};
+  let style = {
+    top: position.y + 'px',
+    left: position.x + 'px',
+  };
 
 
   if (tileIsBase) {
-    style = {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`};
+    Object.assign(style, {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`});
   }
 
   return (
@@ -51,16 +48,16 @@ function renderTile(tile, baseHealth) {
   )
 }
 
-function renderRow(row, baseHealth) {
+function renderRow(row, rowIndex, baseHealth) {
   return (
-    div('.row', row.map(tile => renderTile(tile, baseHealth)))
+    div('.row', row.map((tile, column) => renderTile(tile, baseHealth, {row: rowIndex, column})))
   )
 }
 
 
 function renderBoard (board, baseHealth) {
   return (
-    div('.board', board.map(row => renderRow(row, baseHealth)))
+    div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex, baseHealth)))
   )
 }
 
@@ -138,40 +135,110 @@ function makePlaceTileReducer (event) {
   }
 }
 
-function makeMoveEnemiesReducer (deltaTime, basePosition) {
-  return function moveEnemies (state) {
-    state.enemies.forEach(enemy => {
-      const distanceToBase = {
-        x: Math.abs(basePosition.left - enemy.x),
-        y: Math.abs(basePosition.top - enemy.y)
-      }
+function range (pointA, pointB) {
+  const distance = {
+    x: Math.abs(pointA.left - pointB.x),
+    y: Math.abs(pointA.top - pointB.y)
+  }
 
-      const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
+  return Math.sqrt(
+    Math.pow(distance.x, 2),
+    Math.pow(distance.y, 2)
+  );
+}
 
-      if (distance < 15) {
-        state.baseHealth -= 0.5;
-        return state;
-      }
+function moveEnemies (state, deltaTime, basePosition) {
+  state.enemies.forEach(enemy => {
+    const distanceToBase = {
+      x: Math.abs(basePosition.left - enemy.x),
+      y: Math.abs(basePosition.top - enemy.y)
+    }
 
-      const speed = enemy.speed * deltaTime;
+    const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
 
-      const angle = Math.atan2(
-        basePosition.top - enemy.y,
-        basePosition.left - enemy.x
-      );
+    if (distance < 15) {
+      state.baseHealth -= 0.5;
+      return state;
+    }
 
-      enemy.x = enemy.x + Math.cos(angle) * speed,
-      enemy.y = enemy.y + Math.sin(angle) * speed
-    })
-    return state;
+    const speed = enemy.speed * deltaTime;
+
+    const angle = Math.atan2(
+      basePosition.top - enemy.y,
+      basePosition.left - enemy.x
+    );
+
+    enemy.x = enemy.x + Math.cos(angle) * speed,
+    enemy.y = enemy.y + Math.sin(angle) * speed
+  })
+  return state;
+}
+
+//TODO - this probably belongs on the tile object
+const TILE_RANGE = 100;
+const TILE_DAMAGE = 0.5;
+const TILE_WIDTH = 40;
+const TILE_HEIGHT = 40;
+const PADDING = 6;
+const MARGIN = 30;
+
+function tilePosition (row, column) {
+  return {x: column * (TILE_WIDTH + PADDING) + MARGIN, y: row * (TILE_HEIGHT + PADDING) + MARGIN};
+}
+
+function targetAndShootEnemy (state, tile, {row, column}) {
+  if (!tile.active) {
+    return;
+  }
+
+  const potentialTarget = state.enemies.filter(enemy => {
+    const position = tilePosition(row, column);
+
+    const distanceVector = {
+      x: Math.abs(position.x - enemy.x),
+      y: Math.abs(position.y - enemy.y)
+    }
+
+    const distance = Math.sqrt(
+      Math.pow(distanceVector.x, 2),
+      Math.pow(distanceVector.y, 2)
+    );
+
+    if (distance < TILE_RANGE) {
+      enemy.health -= TILE_DAMAGE;
+    }
+  })
+}
+
+function shootAtEnemies (state, deltaTime, basePosition) {
+  state.board.forEach((row, rowIndex) =>
+    row.forEach((tile, column) =>
+      targetAndShootEnemy(state, tile, {row: rowIndex, column})
+    )
+  )
+
+  return state;
+}
+
+function removeDeadEnemies(state) {
+  return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)})
+}
+
+function makeUpdateReducer (deltaTime, basePosition) {
+  return function update (startingState) {
+    return [
+      moveEnemies,
+      shootAtEnemies,
+      removeDeadEnemies
+    ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState)
   }
 }
 
 function makeSpawnEnemiesReducer () {
   return function spawnEnemies (state) {
     state.enemies.push({
-      x: 400,
-      y: 400,
+      x: 700,
+      y: 100,
       health: 30,
       speed: 0.03
     })
@@ -202,16 +269,17 @@ export default function App ({DOM, animation}) {
   const selectHandTileReducer$ = selectHandTile$
     .map(e => makeSelectHandTileReducer(e))
 
-  const moveEnemiesReducer$ = animation.pluck('delta')
-    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeMoveEnemiesReducer(deltaTime, basePosition))
+  const update$ = animation.pluck('delta')
+    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
 
-  const spawnEnemyReducer$ = Observable.interval(10000)
+  const spawnEnemyReducer$ = Observable.interval(3000)
+    .startWith('go!')
     .map(e => makeSpawnEnemiesReducer())
 
   const reducer$ = Observable.merge(
     selectHandTileReducer$,
     placeTileReducer$,
-    moveEnemiesReducer$,
+    update$,
     spawnEnemyReducer$
   )
 

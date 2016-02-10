@@ -19,13 +19,14 @@ html, body {
 }
 
 .board {
-  display: flex;
-  flex-direction: column;
   margin: 10px;
 }
 
 .row {
-  display: flex;
+}
+
+.board .tile {
+  position: absolute;
 }
 
 .tile {
@@ -53,8 +54,8 @@ html, body {
 }
 
 .hand {
-  display: flex;
-  justify-content: center;
+  position: absolute;
+  right: 600px;
 }
 
 .hand .tile {
@@ -64,5 +65,6 @@ html, body {
 .enemy {
   width: 20px;
   height: 20px;
-  background: green;
+  background: lime;
+  border-radius: 5px;
 }
