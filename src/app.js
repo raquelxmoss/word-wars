@@ -234,11 +234,29 @@ function makeUpdateReducer (deltaTime, basePosition) {
   }
 }
 
+const POSITION_MIN = 10;
+const POSITION_MAX = 700;
+
+function enemySpawnPosition () {
+  const randomPosition = _.random(POSITION_MIN, POSITION_MAX)
+
+  const possibleSpawnPoints = [
+    {x: randomPosition, y: POSITION_MIN},
+    {x: randomPosition, y: POSITION_MAX},
+    {x: POSITION_MIN, y: randomPosition},
+    {x: POSITION_MAX, y: randomPosition}
+  ]
+
+  return _.sample(possibleSpawnPoints)
+}
+
 function makeSpawnEnemiesReducer () {
   return function spawnEnemies (state) {
+    const spawnPosition = enemySpawnPosition()
+
     state.enemies.push({
-      x: 700,
-      y: 100,
+      x: spawnPosition.x,
+      y: spawnPosition.y,
       health: 30,
       speed: 0.03
     })
