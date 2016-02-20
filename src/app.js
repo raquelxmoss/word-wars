@@ -5,6 +5,7 @@ import $ from 'jquery';
 
 import validateBoard from './validate-board';
 import LetterBag from './letter-bag';
+import distance from './distance';
 
 const board = _.range(0, 15).map(function(){
   return _.range(0, 15).map(() => ({active: false, letter: ''}))
@@ -135,28 +136,11 @@ function makePlaceTileReducer (event) {
   }
 }
 
-function range (pointA, pointB) {
-  const distance = {
-    x: Math.abs(pointA.left - pointB.x),
-    y: Math.abs(pointA.top - pointB.y)
-  }
-
-  return Math.sqrt(
-    Math.pow(distance.x, 2),
-    Math.pow(distance.y, 2)
-  );
-}
-
 function moveEnemies (state, deltaTime, basePosition) {
   state.enemies.forEach(enemy => {
-    const distanceToBase = {
-      x: Math.abs(basePosition.left - enemy.x),
-      y: Math.abs(basePosition.top - enemy.y)
-    }
+    const baseDistance = distance(enemy, {x: basePosition.left, y: basePosition.top})
 
-    const distance = Math.sqrt(Math.pow(distanceToBase.x, 2), Math.pow(distanceToBase.y, 2));
-
-    if (distance < 15) {
+    if (baseDistance < 15) {
       state.baseHealth -= 0.5;
       return state;
     }
@@ -194,17 +178,7 @@ function targetAndShootEnemy (state, tile, {row, column}) {
   const potentialTarget = state.enemies.filter(enemy => {
     const position = tilePosition(row, column);
 
-    const distanceVector = {
-      x: Math.abs(position.x - enemy.x),
-      y: Math.abs(position.y - enemy.y)
-    }
-
-    const distance = Math.sqrt(
-      Math.pow(distanceVector.x, 2),
-      Math.pow(distanceVector.y, 2)
-    );
-
-    if (distance < TILE_RANGE) {
+    if (distance(enemy, position) < TILE_RANGE) {
       enemy.health -= TILE_DAMAGE;
     }
   })
