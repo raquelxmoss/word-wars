@@ -23,7 +23,8 @@ const initialState = {
   hand: _.range(0, 10).map(() => ({letter: randomLetter(), active: false})),
   selectedTile: null,
   baseHealth: 100,
-  enemies: []
+  enemies: [],
+  score: 0
 }
 
 function renderTile(tile, baseHealth, {row, column}) {
@@ -175,13 +176,17 @@ function targetAndShootEnemy (state, tile, {row, column}) {
     return;
   }
 
-  const potentialTarget = state.enemies.filter(enemy => {
+  const potentialTargets = state.enemies.filter(enemy => {
     const position = tilePosition(row, column);
 
-    if (distance(enemy, position) < TILE_RANGE) {
-      enemy.health -= TILE_DAMAGE;
-    }
+    return distance(enemy, position) < TILE_RANGE
   })
+
+  if (potentialTargets.length > 0) {
+    const enemy = potentialTargets[0];
+
+    enemy.health -= TILE_DAMAGE;
+  }
 }
 
 function shootAtEnemies (state, deltaTime, basePosition) {
@@ -198,12 +203,21 @@ function removeDeadEnemies(state) {
   return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)})
 }
 
+function addScore(state, deltaTime) {
+  if (state.baseHealth > 0) {
+    state.score += deltaTime / 1000
+  }
+
+  return state
+}
+
 function makeUpdateReducer (deltaTime, basePosition) {
   return function update (startingState) {
     return [
       moveEnemies,
       shootAtEnemies,
-      removeDeadEnemies
+      removeDeadEnemies,
+      addScore
     ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState)
   }
 }
@@ -264,7 +278,8 @@ export default function App ({DOM, animation}) {
   const update$ = animation.pluck('delta')
     .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
 
-  const spawnEnemyReducer$ = Observable.interval(3000)
+  const spawnEnemyReducer$ = Observable.interval(10000)
+    .flatMapLatest(i =>  i % 2 === 0 ? Observable.interval(10000 / (i + 1)) : Observable.empty())
     .startWith('go!')
     .map(e => makeSpawnEnemiesReducer())
 
@@ -279,16 +294,16 @@ export default function App ({DOM, animation}) {
     .startWith(initialState)
     .scan((state, reducer) => reducer(state))
     .distinctUntilChanged(JSON.stringify)
-    .do(console.log.bind(console, 'state'))
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, baseHealth, enemies}) => (
+    DOM: state$.map(({board, hand, selectedTile, baseHealth, enemies, score}) => (
       div('.game', [
+        Math.round(score).toString(),
         renderBoard(board, baseHealth),
         renderHand(hand),
         renderEnemies(enemies),
         JSON.stringify(selectedTile),
-        div(baseHealth <= 0 ? 'You lose!' : '')
+        div(baseHealth <= 0 ? 'You lose!' : ''),
       ])
     ))
   };
