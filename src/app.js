@@ -17,7 +17,6 @@ const bag = LetterBag();
 
 const maxBaseHealth = 100;
 
-
 const initialState = {
   board,
   hand: _.range(0, 10).map(() => ({letter: randomLetter(), active: false})),
@@ -33,9 +32,8 @@ function renderTile (tile, baseHealth, {row, column}) {
 
   let style = {
     top: position.y + 'px',
-    left: position.x + 'px',
+    left: position.x + 'px'
   };
-
 
   if (tileIsBase) {
     Object.assign(style, {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`});
@@ -55,7 +53,6 @@ function renderRow (row, rowIndex, baseHealth) {
     div('.row', row.map((tile, column) => renderTile(tile, baseHealth, {row: rowIndex, column})))
   );
 }
-
 
 function renderBoard (board, baseHealth) {
   return (
@@ -153,7 +150,7 @@ function moveEnemies (state, deltaTime, basePosition) {
       basePosition.left - enemy.x
     );
 
-    enemy.x = enemy.x + Math.cos(angle) * speed,
+    enemy.x = enemy.x + Math.cos(angle) * speed;
     enemy.y = enemy.y + Math.sin(angle) * speed;
   });
   return state;
@@ -254,7 +251,6 @@ function makeSpawnEnemiesReducer () {
 }
 
 export default function App ({DOM, animation}) {
-
   const selectHandTile$ = DOM
     .select('.hand .tile')
     .events('click');
@@ -303,7 +299,7 @@ export default function App ({DOM, animation}) {
         renderHand(hand),
         renderEnemies(enemies),
         JSON.stringify(selectedTile),
-        div(baseHealth <= 0 ? 'You lose!' : ''),
+        div(baseHealth <= 0 ? 'You lose!' : '')
       ])
     ))
   };
