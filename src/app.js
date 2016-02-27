@@ -2,6 +2,7 @@ import {Observable} from 'rx';
 import {div} from '@cycle/dom';
 import _ from 'lodash';
 import $ from 'jquery';
+import { Graph, astar } from 'javascript-astar';
 
 import validateBoard from './validate-board';
 import LetterBag from './letter-bag';
@@ -16,7 +17,6 @@ board[7][7] = {letter: "*", active: false}
 const bag = LetterBag()
 
 const maxBaseHealth = 100;
-
 
 const initialState = {
   board,
@@ -137,25 +137,45 @@ function makePlaceTileReducer (event) {
   }
 }
 
+function moveTowards (enemy, targetPosition, deltaTime) {
+  const speed = enemy.speed * deltaTime;
+
+  const angle = Math.atan2(
+    targetPosition.y - enemy.y,
+    targetPosition.x - enemy.x
+  );
+
+  enemy.x = enemy.x + Math.cos(angle) * speed,
+  enemy.y = enemy.y + Math.sin(angle) * speed
+
+  return enemy
+}
+
 function moveEnemies (state, deltaTime, basePosition) {
   state.enemies.forEach(enemy => {
-    const baseDistance = distance(enemy, {x: basePosition.left, y: basePosition.top})
-
-    if (baseDistance < 15) {
+    if (enemy.path.length === 0) {
+      console.log('attacking base`')
       state.baseHealth -= 0.5;
       return state;
     }
 
-    const speed = enemy.speed * deltaTime;
+    const node = enemy.path[0]
+    const nodePosition = tilePosition(node.row, node.column)
 
-    const angle = Math.atan2(
-      basePosition.top - enemy.y,
-      basePosition.left - enemy.x
-    );
+    const tileAtNode = state.board[node.row][node.column]
 
-    enemy.x = enemy.x + Math.cos(angle) * speed,
-    enemy.y = enemy.y + Math.sin(angle) * speed
-  })
+    if (tileAtNode.active) {
+      // shoot
+      return
+    }
+
+    if (distance(enemy, nodePosition) < 1) {
+      enemy.path.shift()
+    } else {
+      moveTowards(enemy, nodePosition, deltaTime)
+    }
+  });
+
   return state;
 }
 
@@ -215,38 +235,55 @@ function makeUpdateReducer (deltaTime, basePosition) {
   return function update (startingState) {
     return [
       moveEnemies,
-      shootAtEnemies,
+      // shootAtEnemies,
       removeDeadEnemies,
       addScore
     ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState)
   }
 }
 
-const POSITION_MIN = 10;
-const POSITION_MAX = 700;
+const POSITION_MIN = 0;
+const POSITION_MAX = 14;
 
 function enemySpawnPosition () {
   const randomPosition = _.random(POSITION_MIN, POSITION_MAX)
 
   const possibleSpawnPoints = [
-    {x: randomPosition, y: POSITION_MIN},
-    {x: randomPosition, y: POSITION_MAX},
-    {x: POSITION_MIN, y: randomPosition},
-    {x: POSITION_MAX, y: randomPosition}
+    {column: randomPosition, row: POSITION_MIN},
+    {column: randomPosition, row: POSITION_MAX},
+    {column: POSITION_MIN, row: randomPosition},
+    {column: POSITION_MAX, row: randomPosition}
   ]
 
   return _.sample(possibleSpawnPoints)
 }
 
+function calculateEnemyPath (position, state) {
+  const graph = new Graph(state.board.map(row =>
+      row.map(tile => tile.active ? 5 : 1)
+    )
+  )
+
+  const start = graph.grid[position.row][position.column]
+  // TODO constantize basePosition
+  const end = graph.grid[7][7]
+
+  return astar
+    .search(graph, start, end)
+    .map(node => ({row: node.x, column: node.y}))
+}
+
 function makeSpawnEnemiesReducer () {
   return function spawnEnemies (state) {
     const spawnPosition = enemySpawnPosition()
+    const position = tilePosition(spawnPosition.row, spawnPosition.column)
 
     state.enemies.push({
-      x: spawnPosition.x,
-      y: spawnPosition.y,
+      x: position.x,
+      y: position.y,
       health: 30,
-      speed: 0.03
+      speed: 0.03,
+      path: calculateEnemyPath(spawnPosition, state)
     })
 
     return state
