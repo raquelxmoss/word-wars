@@ -10,9 +10,9 @@ import distance from './distance';
 
 const board = _.range(0, 15).map(() =>
   _.range(0, 15).map(() => Tile())
-)
+);
 
-board[7][7] = Tile({letter: "*"})
+board[7][7] = Tile({letter: '*'});
 
 const bag = LetterBag();
 
@@ -27,11 +27,11 @@ const initialState = {
 };
 
 function Tile ({active = false, letter = '', health = 100} = {}) {
-  return {active, letter, health}
+  return {active, letter, health};
 }
 
-function renderTile(tile, baseHealth, coordinate) {
-  const tileIsBase = tile.letter === "*";
+function renderTile (tile, baseHealth, coordinate) {
+  const tileIsBase = tile.letter === '*';
   const position = coordinateToPosition(coordinate);
 
   let style = {
@@ -120,14 +120,14 @@ function makePlaceTileReducer (event) {
     }
 
     if (state.selectedTile.location === 'hand') {
-      state.board[row][column] = state.hand[state.selectedTile.position]
-      state.hand.splice(state.selectedTile.position, 1)
-      state.hand.push(Tile({letter: randomLetter()}))
+      state.board[row][column] = state.hand[state.selectedTile.position];
+      state.hand.splice(state.selectedTile.position, 1);
+      state.hand.push(Tile({letter: randomLetter()}));
     } else {
       const position = state.selectedTile.position;
 
-      state.board[row][column] = state.board[position.row][position.column]
-      state.board[position.row][position.column] = Tile()
+      state.board[row][column] = state.board[position.row][position.column];
+      state.board[position.row][position.column] = Tile();
     }
 
     return Object.assign(
@@ -138,8 +138,8 @@ function makePlaceTileReducer (event) {
         board: validateBoard(state.board),
         selectedTile: null
       }
-    )
-  }
+    );
+  };
 }
 
 function moveTowards (enemy, targetPosition, deltaTime) {
@@ -150,14 +150,14 @@ function moveTowards (enemy, targetPosition, deltaTime) {
     targetPosition.x - enemy.x
   );
 
-  enemy.x = enemy.x + Math.cos(angle) * speed,
-  enemy.y = enemy.y + Math.sin(angle) * speed
+  enemy.x = enemy.x + Math.cos(angle) * speed;
+  enemy.y = enemy.y + Math.sin(angle) * speed;
 
-  return enemy
+  return enemy;
 }
 
 function base (board) {
-  return board[7][7]
+  return board[7][7];
 }
 
 function moveEnemies (state, deltaTime, basePosition) {
@@ -165,22 +165,22 @@ function moveEnemies (state, deltaTime, basePosition) {
     if (enemy.path.length === 0) {
       base(state.board).health -= 0.5;
 
-      return state
+      return state;
     }
 
-    const coordinate = enemy.path[0]
-    const nodePosition = coordinateToPosition(coordinate)
-    const tileAtNode = state.board[coordinate.row][coordinate.column]
+    const coordinate = enemy.path[0];
+    const nodePosition = coordinateToPosition(coordinate);
+    const tileAtNode = state.board[coordinate.row][coordinate.column];
 
     if (tileAtNode.active) {
-      tileAtNode.health -= enemy.damage * deltaTime
-      return
+      tileAtNode.health -= enemy.damage * deltaTime;
+      return;
     }
 
     if (distance(enemy, nodePosition) < 1) {
-      enemy.path.shift()
+      enemy.path.shift();
     } else {
-      moveTowards(enemy, nodePosition, deltaTime)
+      moveTowards(enemy, nodePosition, deltaTime);
     }
   });
 
@@ -206,7 +206,7 @@ function positionToCoordinate ({x, y}) {
   return {
     column: Math.floor((x - MARGIN) / (TILE_WIDTH + PADDING)),
     row: Math.floor((y - MARGIN) / (TILE_HEIGHT + PADDING))
-  }
+  };
 }
 
 function targetAndShootEnemy (state, tile, coordinate) {
@@ -241,31 +241,31 @@ function removeDeadEnemies (state) {
   return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)});
 }
 
-function removeDeadTiles(state) {
+function removeDeadTiles (state) {
   let removedTileCount = 0;
 
   const board = state.board.map(row =>
     row.map(tile => {
       if (tile.active && tile.health < 0) {
-        removedTileCount++
+        removedTileCount++;
 
-        return Tile({health: 0})
+        return Tile({health: 0});
       }
 
-      return tile
+      return tile;
     })
-  )
+  );
 
   if (removedTileCount > 0) {
-    return Object.assign({}, state, {board: validateBoard(board), enemies: updateEnemyPaths(state)})
+    return Object.assign({}, state, {board: validateBoard(board), enemies: updateEnemyPaths(state)});
   }
 
-  return Object.assign({}, state, {board})
+  return Object.assign({}, state, {board});
 }
 
-function addScore(state, deltaTime) {
+function addScore (state, deltaTime) {
   if (base(state.board).health > 0) {
-    state.score += deltaTime / 1000
+    state.score += deltaTime / 1000;
   }
 
   return state;
@@ -287,14 +287,14 @@ const POSITION_MIN = 0;
 const POSITION_MAX = 14;
 
 function enemySpawnCoordinate () {
-  const randomPosition = _.random(POSITION_MIN, POSITION_MAX)
+  const randomPosition = _.random(POSITION_MIN, POSITION_MAX);
 
   const possibleSpawnPoints = [
     {column: randomPosition, row: POSITION_MIN},
     {column: randomPosition, row: POSITION_MAX},
     {column: POSITION_MIN, row: randomPosition},
     {column: POSITION_MAX, row: randomPosition}
-  ]
+  ];
 
   return _.sample(possibleSpawnPoints);
 }
@@ -303,22 +303,21 @@ function calculateEnemyPath (position, state) {
   const graph = new Graph(state.board.map(row =>
       row.map(tile => tile.active ? 3 : 1)
     )
-  )
+  );
 
-  const start = graph.grid[position.row][position.column]
+  const start = graph.grid[position.row][position.column];
   // TODO constantize basePosition
-  const end = graph.grid[7][7]
-
+  const end = graph.grid[7][7];
 
   let result;
 
   try {
     result = astar
       .search(graph, start, end)
-      .map(node => ({row: node.x, column: node.y}))
+      .map(node => ({row: node.x, column: node.y}));
   } catch (e) {
-    console.error(e)
-    debugger
+    console.error(e);
+    debugger;
   }
 
   return result;
@@ -326,14 +325,14 @@ function calculateEnemyPath (position, state) {
 
 function updateEnemyPaths (state) {
   return state.enemies.map(enemy => {
-    return Object.assign({}, enemy, {path: calculateEnemyPath(positionToCoordinate(enemy), state)})
-  })
+    return Object.assign({}, enemy, {path: calculateEnemyPath(positionToCoordinate(enemy), state)});
+  });
 }
 
 function makeSpawnEnemiesReducer () {
   return function spawnEnemies (state) {
-    const spawnCoordinate = enemySpawnCoordinate()
-    const position = coordinateToPosition(spawnCoordinate)
+    const spawnCoordinate = enemySpawnCoordinate();
+    const position = coordinateToPosition(spawnCoordinate);
 
     state.enemies.push({
       x: position.x,
@@ -342,7 +341,7 @@ function makeSpawnEnemiesReducer () {
       damage: 0.1,
       speed: 0.03,
       path: calculateEnemyPath(spawnCoordinate, state)
-    })
+    });
 
     return state;
   };
@@ -378,14 +377,13 @@ export default function App ({DOM, animation}) {
       (i) => i + 1,
       (i) => i,
       (i) => {
-        console.log(i)
+        console.log(i);
         const pauseFromWave = i % 2 !== 0;
 
         if (pauseFromWave) {
-          console.log('pause duration', 10000 * (1 + i / 5))
-          return 10000 * (1 + i / 7)
+          console.log('pause duration', 10000 * (1 + i / 5));
+          return 10000 * (1 + i / 7);
         }
-
 
         return 10000;
       }
@@ -393,13 +391,13 @@ export default function App ({DOM, animation}) {
     .flatMapLatest(i => {
       const pauseFromWave = i % 2 === 0;
 
-      console.log('starting wave', i, pauseFromWave ? 'pause' : 'attack!')
+      console.log('starting wave', i, pauseFromWave ? 'pause' : 'attack!');
 
       if (pauseFromWave) {
         return Observable.empty();
       }
 
-      console.log('attack freq', 10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3))
+      console.log('attack freq', 10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3));
       return Observable.interval(10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3));
     })
     .startWith('go!')
@@ -425,7 +423,7 @@ export default function App ({DOM, animation}) {
         renderHand(hand),
         renderEnemies(enemies),
         JSON.stringify(selectedTile),
-        div(base(board).health <= 0 ? 'You lose!' : ''),
+        div(base(board).health <= 0 ? 'You lose!' : '')
       ])
     ))
   };
