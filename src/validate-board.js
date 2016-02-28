@@ -119,7 +119,6 @@ function markFloatingWordsInvalid (board) {
 
   return board.map((row, rowIndex) => {
     return row.map((tile, columnIndex) => {
-
       const touchingBase = !!_.find(visited, {row: rowIndex, column: columnIndex});
 
       return Object.assign({}, tile, {active: tile.active && touchingBase});

@@ -8,13 +8,13 @@ import validateBoard from './validate-board';
 import LetterBag from './letter-bag';
 import distance from './distance';
 
-const board = _.range(0, 15).map(function(){
-  return _.range(0, 15).map(() => Tile())
-})
+const board = _.range(0, 15).map(() =>
+  _.range(0, 15).map(() => Tile())
+)
 
 board[7][7] = Tile({letter: "*"})
 
-const bag = LetterBag()
+const bag = LetterBag();
 
 const maxBaseHealth = 100;
 
@@ -24,7 +24,7 @@ const initialState = {
   selectedTile: null,
   enemies: [],
   score: 0
-}
+};
 
 function Tile ({active = false, letter = '', health = 100} = {}) {
   return {active, letter, health}
@@ -36,9 +36,8 @@ function renderTile(tile, baseHealth, coordinate) {
 
   let style = {
     top: position.y + 'px',
-    left: position.x + 'px',
+    left: position.x + 'px'
   };
-
 
   if (tileIsBase) {
     Object.assign(style, {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`});
@@ -46,30 +45,29 @@ function renderTile(tile, baseHealth, coordinate) {
 
   return (
     div(
-      `.tile ${tile.letter === "" ? "" : '.active'} ${tile.active ? '.valid' : ''} ${tileIsBase ? ".base" : ""}`,
+      `.tile ${tile.letter === '' ? '' : '.active'} ${tile.active ? '.valid' : ''} ${tileIsBase ? '.base' : ''}`,
       {style},
       tile.letter
     )
-  )
+  );
 }
 
-function renderRow(row, rowIndex, baseHealth) {
+function renderRow (row, rowIndex, baseHealth) {
   return (
     div('.row', row.map((tile, column) => renderTile(tile, baseHealth, {row: rowIndex, column})))
-  )
+  );
 }
-
 
 function renderBoard (board, baseHealth) {
   return (
     div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex, baseHealth)))
-  )
+  );
 }
 
 function renderHand (hand) {
   return (
     div('.hand', hand.map(renderTile))
-  )
+  );
 }
 
 function renderEnemy (enemy) {
@@ -77,48 +75,48 @@ function renderEnemy (enemy) {
     position: 'absolute',
     left: enemy.x + 'px',
     top: enemy.y + 'px'
-  }
+  };
 
   return (
     div('.enemy', {style})
-  )
+  );
 }
 
 function renderEnemies (enemies) {
   return (
     div('.enemies', enemies.map(renderEnemy))
-  )
+  );
 }
 
 function makeSelectHandTileReducer (event) {
   return function selectHandTile (state) {
-    const selectedTileIndex = $(event.target).index()
+    const selectedTileIndex = $(event.target).index();
 
-    return Object.assign({}, state, {selectedTile: {location: 'hand', position: selectedTileIndex}})
-  }
+    return Object.assign({}, state, {selectedTile: {location: 'hand', position: selectedTileIndex}});
+  };
 }
 
 function randomLetter () {
-  return bag.draw()
+  return bag.draw();
 }
 
 function makePlaceTileReducer (event) {
-  const column = $(event.target).index()
-  const row = $(event.target).parent().index()
+  const column = $(event.target).index();
+  const row = $(event.target).parent().index();
 
   return function placeTile (state) {
     if (state.selectedTile === null && state.board[row][column].letter !== '') {
-      state.selectedTile = {location: 'board', position: {row, column}}
+      state.selectedTile = {location: 'board', position: {row, column}};
 
-      return state
+      return state;
     }
 
     if (state.selectedTile === null) {
-      return state
+      return state;
     }
 
     if (state.selectedTile !== null && state.board[row][column].letter !== '') {
-      return state
+      return state;
     }
 
     if (state.selectedTile.location === 'hand') {
@@ -126,7 +124,7 @@ function makePlaceTileReducer (event) {
       state.hand.splice(state.selectedTile.position, 1)
       state.hand.push(Tile({letter: randomLetter()}))
     } else {
-      const position = state.selectedTile.position
+      const position = state.selectedTile.position;
 
       state.board[row][column] = state.board[position.row][position.column]
       state.board[position.row][position.column] = Tile()
@@ -164,7 +162,6 @@ function base (board) {
 
 function moveEnemies (state, deltaTime, basePosition) {
   state.enemies.forEach(enemy => {
-
     if (enemy.path.length === 0) {
       base(state.board).health -= 0.5;
 
@@ -190,7 +187,7 @@ function moveEnemies (state, deltaTime, basePosition) {
   return state;
 }
 
-//TODO - this probably belongs on the tile object
+// TODO - this probably belongs on the tile object
 const TILE_RANGE = 100;
 const TILE_DAMAGE = 0.5;
 const TILE_WIDTH = 40;
@@ -220,8 +217,8 @@ function targetAndShootEnemy (state, tile, coordinate) {
   const potentialTargets = state.enemies.filter(enemy => {
     const position = coordinateToPosition(coordinate);
 
-    return distance(enemy, position) < TILE_RANGE
-  })
+    return distance(enemy, position) < TILE_RANGE;
+  });
 
   if (potentialTargets.length > 0) {
     const enemy = potentialTargets[0];
@@ -235,13 +232,13 @@ function shootAtEnemies (state, deltaTime, basePosition) {
     row.forEach((tile, column) =>
       targetAndShootEnemy(state, tile, {row: rowIndex, column})
     )
-  )
+  );
 
   return state;
 }
 
-function removeDeadEnemies(state) {
-  return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)})
+function removeDeadEnemies (state) {
+  return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)});
 }
 
 function removeDeadTiles(state) {
@@ -271,7 +268,7 @@ function addScore(state, deltaTime) {
     state.score += deltaTime / 1000
   }
 
-  return state
+  return state;
 }
 
 function makeUpdateReducer (deltaTime, basePosition) {
@@ -282,8 +279,8 @@ function makeUpdateReducer (deltaTime, basePosition) {
       removeDeadEnemies,
       removeDeadTiles,
       addScore
-    ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState)
-  }
+    ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState);
+  };
 }
 
 const POSITION_MIN = 0;
@@ -299,7 +296,7 @@ function enemySpawnCoordinate () {
     {column: POSITION_MAX, row: randomPosition}
   ]
 
-  return _.sample(possibleSpawnPoints)
+  return _.sample(possibleSpawnPoints);
 }
 
 function calculateEnemyPath (position, state) {
@@ -347,34 +344,33 @@ function makeSpawnEnemiesReducer () {
       path: calculateEnemyPath(spawnCoordinate, state)
     })
 
-    return state
-  }
+    return state;
+  };
 }
 
 export default function App ({DOM, animation}) {
-
   const selectHandTile$ = DOM
     .select('.hand .tile')
-    .events('click')
+    .events('click');
 
   const boardClick$ = DOM
     .select('.board .tile')
-    .events('click')
+    .events('click');
 
   const basePosition$ = DOM
     .select('.base')
     .observable
     .map(el => $(el).position())
-    .take(1)
+    .take(1);
 
   const placeTileReducer$ = boardClick$
-    .map(e => makePlaceTileReducer(e))
+    .map(e => makePlaceTileReducer(e));
 
   const selectHandTileReducer$ = selectHandTile$
-    .map(e => makeSelectHandTileReducer(e))
+    .map(e => makeSelectHandTileReducer(e));
 
   const update$ = animation.pluck('delta')
-    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
+    .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition));
 
   const spawnEnemyReducer$ = Observable.generateWithRelativeTime(
       1,
@@ -407,19 +403,19 @@ export default function App ({DOM, animation}) {
       return Observable.interval(10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3));
     })
     .startWith('go!')
-    .map(e => makeSpawnEnemiesReducer())
+    .map(e => makeSpawnEnemiesReducer());
 
   const reducer$ = Observable.merge(
     selectHandTileReducer$,
     placeTileReducer$,
     update$,
     spawnEnemyReducer$
-  )
+  );
 
   const state$ = reducer$
     .startWith(initialState)
     .scan((state, reducer) => reducer(state))
-    .distinctUntilChanged(JSON.stringify)
+    .distinctUntilChanged(JSON.stringify);
 
   return {
     DOM: state$.map(({board, hand, selectedTile, enemies, score}) => (
