@@ -9,10 +9,10 @@ import LetterBag from './letter-bag';
 import distance from './distance';
 
 const board = _.range(0, 15).map(function(){
-  return _.range(0, 15).map(() => ({active: false, letter: ''}))
+  return _.range(0, 15).map(() => Tile())
 })
 
-board[7][7] = {letter: "*", active: false}
+board[7][7] = Tile({letter: "*"})
 
 const bag = LetterBag()
 
@@ -20,11 +20,14 @@ const maxBaseHealth = 100;
 
 const initialState = {
   board,
-  hand: _.range(0, 10).map(() => ({letter: randomLetter(), active: false})),
+  hand: _.range(0, 10).map(() => Tile({letter: randomLetter()})),
   selectedTile: null,
-  baseHealth: 100,
   enemies: [],
   score: 0
+}
+
+function Tile ({active = false, letter = '', health = 100} = {}) {
+  return {active, letter, health}
 }
 
 function renderTile(tile, baseHealth, {row, column}) {
@@ -121,12 +124,12 @@ function makePlaceTileReducer (event) {
     if (state.selectedTile.location === 'hand') {
       state.board[row][column] = state.hand[state.selectedTile.position]
       state.hand.splice(state.selectedTile.position, 1)
-      state.hand.push({letter: randomLetter(), active: false})
+      state.hand.push(Tile({letter: randomLetter()}))
     } else {
       const position = state.selectedTile.position
 
       state.board[row][column] = state.board[position.row][position.column]
-      state.board[position.row][position.column] = {active: false, letter: ''}
+      state.board[position.row][position.column] = Tile()
     }
 
     state.selectedTile = null
@@ -151,21 +154,25 @@ function moveTowards (enemy, targetPosition, deltaTime) {
   return enemy
 }
 
+function base (board) {
+  return board[7][7]
+}
+
 function moveEnemies (state, deltaTime, basePosition) {
   state.enemies.forEach(enemy => {
+
     if (enemy.path.length === 0) {
-      console.log('attacking base`')
-      state.baseHealth -= 0.5;
-      return state;
+      base(state.board).health -= 0.5;
+
+      return state
     }
 
     const node = enemy.path[0]
     const nodePosition = tilePosition(node.row, node.column)
-
     const tileAtNode = state.board[node.row][node.column]
 
     if (tileAtNode.active) {
-      // shoot
+      tileAtNode.health -= enemy.damage * deltaTime
       return
     }
 
@@ -223,8 +230,30 @@ function removeDeadEnemies(state) {
   return Object.assign({}, state, {enemies: state.enemies.filter(enemy => enemy.health > 0)})
 }
 
+function removeDeadTiles(state) {
+  let removedTileCount = 0;
+
+  const board = state.board.map(row =>
+    row.map(tile => {
+      if (tile.active && tile.health < 0) {
+        removedTileCount++
+
+        return Tile({health: 0})
+      }
+
+      return tile
+    })
+  )
+
+  if (removedTileCount > 0) {
+    return Object.assign({}, state, {board: validateBoard(board)})
+  }
+
+  return Object.assign({}, state, {board})
+}
+
 function addScore(state, deltaTime) {
-  if (state.baseHealth > 0) {
+  if (base(state.board).health > 0) {
     state.score += deltaTime / 1000
   }
 
@@ -235,8 +264,9 @@ function makeUpdateReducer (deltaTime, basePosition) {
   return function update (startingState) {
     return [
       moveEnemies,
-      // shootAtEnemies,
+      shootAtEnemies,
       removeDeadEnemies,
+      removeDeadTiles,
       addScore
     ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState)
   }
@@ -282,6 +312,7 @@ function makeSpawnEnemiesReducer () {
       x: position.x,
       y: position.y,
       health: 30,
+      damage: 0.1,
       speed: 0.03,
       path: calculateEnemyPath(spawnPosition, state)
     })
@@ -316,7 +347,7 @@ export default function App ({DOM, animation}) {
     .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
 
   const spawnEnemyReducer$ = Observable.interval(10000)
-    .flatMapLatest(i =>  i % 2 === 0 ? Observable.interval(10000 / (i + 1)) : Observable.empty())
+    .flatMapLatest(i =>  i % 2 === 0 ? Observable.interval(10000 / (Math.pow(i + 1, 2))) : Observable.empty())
     .startWith('go!')
     .map(e => makeSpawnEnemiesReducer())
 
@@ -333,14 +364,14 @@ export default function App ({DOM, animation}) {
     .distinctUntilChanged(JSON.stringify)
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, baseHealth, enemies, score}) => (
+    DOM: state$.map(({board, hand, selectedTile, enemies, score}) => (
       div('.game', [
         Math.round(score).toString(),
-        renderBoard(board, baseHealth),
+        renderBoard(board, base(board).health),
         renderHand(hand),
         renderEnemies(enemies),
         JSON.stringify(selectedTile),
-        div(baseHealth <= 0 ? 'You lose!' : ''),
+        div(base(board).health <= 0 ? 'You lose!' : ''),
       ])
     ))
   };
