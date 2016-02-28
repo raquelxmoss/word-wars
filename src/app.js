@@ -30,9 +30,9 @@ function Tile ({active = false, letter = '', health = 100} = {}) {
   return {active, letter, health}
 }
 
-function renderTile(tile, baseHealth, {row, column}) {
+function renderTile(tile, baseHealth, coordinate) {
   const tileIsBase = tile.letter === "*";
-  const position = tilePosition(row, column);
+  const position = coordinateToPosition(coordinate);
 
   let style = {
     top: position.y + 'px',
@@ -132,11 +132,15 @@ function makePlaceTileReducer (event) {
       state.board[position.row][position.column] = Tile()
     }
 
-    state.selectedTile = null
-
-    state.board = validateBoard(state.board)
-
-    return state
+    return Object.assign(
+      {},
+      state,
+      {
+        enemies: updateEnemyPaths(state),
+        board: validateBoard(state.board),
+        selectedTile: null
+      }
+    )
   }
 }
 
@@ -167,9 +171,9 @@ function moveEnemies (state, deltaTime, basePosition) {
       return state
     }
 
-    const node = enemy.path[0]
-    const nodePosition = tilePosition(node.row, node.column)
-    const tileAtNode = state.board[node.row][node.column]
+    const coordinate = enemy.path[0]
+    const nodePosition = coordinateToPosition(coordinate)
+    const tileAtNode = state.board[coordinate.row][coordinate.column]
 
     if (tileAtNode.active) {
       tileAtNode.health -= enemy.damage * deltaTime
@@ -194,17 +198,27 @@ const TILE_HEIGHT = 40;
 const PADDING = 6;
 const MARGIN = 30;
 
-function tilePosition (row, column) {
-  return {x: column * (TILE_WIDTH + PADDING) + MARGIN, y: row * (TILE_HEIGHT + PADDING) + MARGIN};
+function coordinateToPosition ({row, column}) {
+  return {
+    x: column * (TILE_WIDTH + PADDING) + MARGIN,
+    y: row * (TILE_HEIGHT + PADDING) + MARGIN
+  };
 }
 
-function targetAndShootEnemy (state, tile, {row, column}) {
+function positionToCoordinate ({x, y}) {
+  return {
+    column: Math.floor((x - MARGIN) / (TILE_WIDTH + PADDING)),
+    row: Math.floor((y - MARGIN) / (TILE_HEIGHT + PADDING))
+  }
+}
+
+function targetAndShootEnemy (state, tile, coordinate) {
   if (!tile.active) {
     return;
   }
 
   const potentialTargets = state.enemies.filter(enemy => {
-    const position = tilePosition(row, column);
+    const position = coordinateToPosition(coordinate);
 
     return distance(enemy, position) < TILE_RANGE
   })
@@ -246,7 +260,7 @@ function removeDeadTiles(state) {
   )
 
   if (removedTileCount > 0) {
-    return Object.assign({}, state, {board: validateBoard(board)})
+    return Object.assign({}, state, {board: validateBoard(board), enemies: updateEnemyPaths(state)})
   }
 
   return Object.assign({}, state, {board})
@@ -275,7 +289,7 @@ function makeUpdateReducer (deltaTime, basePosition) {
 const POSITION_MIN = 0;
 const POSITION_MAX = 14;
 
-function enemySpawnPosition () {
+function enemySpawnCoordinate () {
   const randomPosition = _.random(POSITION_MIN, POSITION_MAX)
 
   const possibleSpawnPoints = [
@@ -290,7 +304,7 @@ function enemySpawnPosition () {
 
 function calculateEnemyPath (position, state) {
   const graph = new Graph(state.board.map(row =>
-      row.map(tile => tile.active ? 5 : 1)
+      row.map(tile => tile.active ? 3 : 1)
     )
   )
 
@@ -298,15 +312,31 @@ function calculateEnemyPath (position, state) {
   // TODO constantize basePosition
   const end = graph.grid[7][7]
 
-  return astar
-    .search(graph, start, end)
-    .map(node => ({row: node.x, column: node.y}))
+
+  let result;
+
+  try {
+    result = astar
+      .search(graph, start, end)
+      .map(node => ({row: node.x, column: node.y}))
+  } catch (e) {
+    console.error(e)
+    debugger
+  }
+
+  return result;
+}
+
+function updateEnemyPaths (state) {
+  return state.enemies.map(enemy => {
+    return Object.assign({}, enemy, {path: calculateEnemyPath(positionToCoordinate(enemy), state)})
+  })
 }
 
 function makeSpawnEnemiesReducer () {
   return function spawnEnemies (state) {
-    const spawnPosition = enemySpawnPosition()
-    const position = tilePosition(spawnPosition.row, spawnPosition.column)
+    const spawnCoordinate = enemySpawnCoordinate()
+    const position = coordinateToPosition(spawnCoordinate)
 
     state.enemies.push({
       x: position.x,
@@ -314,7 +344,7 @@ function makeSpawnEnemiesReducer () {
       health: 30,
       damage: 0.1,
       speed: 0.03,
-      path: calculateEnemyPath(spawnPosition, state)
+      path: calculateEnemyPath(spawnCoordinate, state)
     })
 
     return state
@@ -346,8 +376,36 @@ export default function App ({DOM, animation}) {
   const update$ = animation.pluck('delta')
     .withLatestFrom(basePosition$, (deltaTime, basePosition) => makeUpdateReducer(deltaTime, basePosition))
 
-  const spawnEnemyReducer$ = Observable.interval(10000)
-    .flatMapLatest(i =>  i % 2 === 0 ? Observable.interval(10000 / (Math.pow(i + 1, 2))) : Observable.empty())
+  const spawnEnemyReducer$ = Observable.generateWithRelativeTime(
+      1,
+      () => true,
+      (i) => i + 1,
+      (i) => i,
+      (i) => {
+        console.log(i)
+        const pauseFromWave = i % 2 !== 0;
+
+        if (pauseFromWave) {
+          console.log('pause duration', 10000 * (1 + i / 5))
+          return 10000 * (1 + i / 7)
+        }
+
+
+        return 10000;
+      }
+    )
+    .flatMapLatest(i => {
+      const pauseFromWave = i % 2 === 0;
+
+      console.log('starting wave', i, pauseFromWave ? 'pause' : 'attack!')
+
+      if (pauseFromWave) {
+        return Observable.empty();
+      }
+
+      console.log('attack freq', 10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3))
+      return Observable.interval(10000 / Math.pow((Math.sin(i * 0.28) * 8 + i * 2), 1.3));
+    })
     .startWith('go!')
     .map(e => makeSpawnEnemiesReducer())
 
