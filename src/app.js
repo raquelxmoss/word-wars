@@ -325,7 +325,7 @@ function calculateEnemyPath (position, state) {
 
 function updateEnemyPaths (state) {
   return state.enemies.map(enemy => {
-    return Object.assign({}, enemy, {path: calculateEnemyPath(positionToCoordinate(enemy), state)});
+    return Object.assign({}, enemy, {path: calculateEnemyPath(positionToCoordinate(enemy), state).slice(1)});
   });
 }
 
@@ -418,12 +418,12 @@ export default function App ({DOM, animation}) {
   return {
     DOM: state$.map(({board, hand, selectedTile, enemies, score}) => (
       div('.game', [
-        Math.round(score).toString(),
-        renderBoard(board, base(board).health),
         renderHand(hand),
+        div('.score', `Score: ${Math.round(score)}`),
+        renderBoard(board, base(board).health),
         renderEnemies(enemies),
-        JSON.stringify(selectedTile),
-        div(base(board).health <= 0 ? 'You lose!' : '')
+        div('.selected-tile-info', JSON.stringify(selectedTile)),
+        div('.game-over', base(board).health <= 0 ? 'Game over!' : ''),
       ])
     ))
   };
