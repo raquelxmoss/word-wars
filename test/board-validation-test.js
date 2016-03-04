@@ -111,7 +111,7 @@ describe('validateBoard', () => {
     const validatedBoard = validateBoard(board);
 
     assert.equal(validatedBoard[0][0].active, false, 'first empty tile is invalid');
-    assert.equal(validatedBoard[1][0].active, true, 'base is valid');
+    assert.equal(validatedBoard[1][0].active, false, "base isn't valid");
     assert.equal(validatedBoard[2][0].active, true, 'rat in column is valid');
     assert.equal(validatedBoard[4][0].active, true, 'rat in column is valid');
   });

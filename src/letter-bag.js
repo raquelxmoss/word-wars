@@ -28,11 +28,11 @@ export default function LetterBag () {
     {letter: 'X', frequency: 1},
     {letter: 'Q', frequency: 1},
     {letter: 'Z', frequency: 1}
-  ]
+  ];
 
   const bag = _.chain(distribution).map(({letter, frequency}) => {
-    return _.times(frequency, _.constant(letter))
-  }).flatten().shuffle().value()
+    return _.times(frequency, _.constant(letter));
+  }).flatten().shuffle().value();
 
-  return {draw: () => bag.pop()}
+  return {draw: () => bag.pop()};
 }
