@@ -23,7 +23,9 @@ const initialState = {
   hand: _.range(0, 10).map(() => Tile({letter: randomLetter()})),
   selectedTile: null,
   enemies: [],
-  score: 0
+  score: 0,
+  draggingTile: null,
+  mousePosition: {x: 0, y: 0}
 };
 
 function Tile ({active = false, letter = '', health = 100} = {}) {
@@ -47,6 +49,24 @@ function renderTile (tile, baseHealth, coordinate) {
     div(
       `.tile ${tile.letter === '' ? '' : '.active'} ${tile.active ? '.valid' : ''} ${tileIsBase ? '.base' : ''}`,
       {style},
+      tile.letter
+    )
+  );
+}
+
+function renderDraggingTile (tile, mousePosition) {
+  if (tile === null) { return }
+
+  let style = {
+    top: mousePosition.y + 'px',
+    left: mousePosition.x + 'px',
+    position: 'absolute'
+  };
+
+  return (
+    div(
+      `.tile ${tile.letter === '' ? '' : '.active'}`,
+      {style, key: 8796}, //TODO: setup keys properly
       tile.letter
     )
   );
@@ -91,8 +111,18 @@ function renderEnemies (enemies) {
 function makeSelectHandTileReducer (event) {
   return function selectHandTile (state) {
     const selectedTileIndex = $(event.target).index();
+    const tile = state.hand[selectedTileIndex];
 
-    return Object.assign({}, state, {selectedTile: {location: 'hand', position: selectedTileIndex}});
+    state.hand.splice(selectedTileIndex, 1);
+
+    return Object.assign(
+      {},
+      state,
+      {
+        selectedTile: {location: 'hand', position: selectedTileIndex},
+        draggingTile: tile
+      }
+    );
   };
 }
 
@@ -100,34 +130,36 @@ function randomLetter () {
   return bag.draw();
 }
 
+function makeDragBoardTileReducer (e) {
+  const column = $(e.target).index();
+  const row = $(e.target).parent().index();
+
+  return function dragBoardTile (state) {
+    state.draggingTile = state.board[row][column];
+    state.board[row][column] = Tile();
+
+    return state
+  }
+}
+
 function makePlaceTileReducer (event) {
-  const column = $(event.target).index();
-  const row = $(event.target).parent().index();
-
   return function placeTile (state) {
-    if (state.selectedTile === null && state.board[row][column].letter !== '') {
-      state.selectedTile = {location: 'board', position: {row, column}};
+    const {column, row} = positionToCoordinate(state.mousePosition);
 
+    if (state.draggingTile === null) {
       return state;
     }
 
-    if (state.selectedTile === null) {
+    if (state.draggingTile !== null && state.board[row][column].letter !== '') {
+      state.hand.push(state.draggingTile)
+      state.draggingTile = null
       return state;
     }
 
-    if (state.selectedTile !== null && state.board[row][column].letter !== '') {
-      return state;
-    }
+    state.board[row][column] = state.draggingTile;
 
-    if (state.selectedTile.location === 'hand') {
-      state.board[row][column] = state.hand[state.selectedTile.position];
-      state.hand.splice(state.selectedTile.position, 1);
+    if (state.hand.length < 10) { // TODO: constantize hand length
       state.hand.push(Tile({letter: randomLetter()}));
-    } else {
-      const position = state.selectedTile.position;
-
-      state.board[row][column] = state.board[position.row][position.column];
-      state.board[position.row][position.column] = Tile();
     }
 
     return Object.assign(
@@ -136,7 +168,8 @@ function makePlaceTileReducer (event) {
       {
         enemies: updateEnemyPaths(state),
         board: validateBoard(state.board),
-        selectedTile: null
+        selectedTile: null,
+        draggingTile: null
       }
     );
   };
@@ -347,14 +380,31 @@ function makeSpawnEnemiesReducer () {
   };
 }
 
+function makeUpdateMousePositionReducer (mousePosition) {
+  return function updateMousePosition (state) {
+    return Object.assign({}, state, {mousePosition})
+  }
+}
+
+function mousePosition (e, gamePosition) {
+  return {
+    x: e.clientX - gamePosition.left,
+    y: e.clientY - gamePosition.top
+  }
+}
+
 export default function App ({DOM, animation}) {
   const selectHandTile$ = DOM
     .select('.hand .tile')
-    .events('click');
+    .events('mousedown');
 
-  const boardClick$ = DOM
+  const selectBoardTile$ = DOM
     .select('.board .tile')
-    .events('click');
+    .events('mousedown');
+
+  const dropTileOnBoard$ = DOM
+    .select('.app *')
+    .events('mouseup')
 
   const basePosition$ = DOM
     .select('.base')
@@ -362,8 +412,25 @@ export default function App ({DOM, animation}) {
     .map(el => $(el).position())
     .take(1);
 
-  const placeTileReducer$ = boardClick$
-    .map(e => makePlaceTileReducer(e));
+  const gamePosition$ = DOM
+    .select('.game')
+    .observable
+    .map(el => $(el).position())
+    .take(1);
+
+  const mousePosition$ = DOM
+    .select('.app *')
+    .events('mousemove', true)
+    .withLatestFrom(gamePosition$, mousePosition)
+
+  const updateMousePosition$ = mousePosition$
+    .map(position => makeUpdateMousePositionReducer(position))
+
+  const placeTileReducer$ = dropTileOnBoard$
+    .map(e => makePlaceTileReducer(e))
+
+  const dragBoardTile$ = selectBoardTile$
+    .map(e => makeDragBoardTileReducer(e));
 
   const selectHandTileReducer$ = selectHandTile$
     .map(e => makeSelectHandTileReducer(e));
@@ -407,23 +474,26 @@ export default function App ({DOM, animation}) {
     selectHandTileReducer$,
     placeTileReducer$,
     update$,
-    spawnEnemyReducer$
+    spawnEnemyReducer$,
+    updateMousePosition$,
+    dragBoardTile$
   );
 
   const state$ = reducer$
     .startWith(initialState)
     .scan((state, reducer) => reducer(state))
-    .distinctUntilChanged(JSON.stringify);
+    .distinctUntilChanged(JSON.stringify)
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, enemies, score}) => (
+    DOM: state$.map(({board, hand, selectedTile, enemies, score, draggingTile, mousePosition}) => (
       div('.game', [
         renderHand(hand),
         div('.score', `Score: ${Math.round(score)}`),
         renderBoard(board, base(board).health),
         renderEnemies(enemies),
-        div('.selected-tile-info', JSON.stringify(selectedTile)),
+        div('.selected-tile-info',  JSON.stringify(selectedTile)),
         div('.game-over', base(board).health <= 0 ? 'Game over!' : ''),
+        renderDraggingTile(draggingTile, mousePosition)
       ])
     ))
   };
