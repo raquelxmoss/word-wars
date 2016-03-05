@@ -21,7 +21,6 @@ const maxBaseHealth = 100;
 const initialState = {
   board,
   hand: _.range(0, 10).map(() => Tile({letter: randomLetter()})),
-  selectedTile: null,
   enemies: [],
   score: 0,
   draggingTile: null,
@@ -174,7 +173,6 @@ function makeSelectHandTileReducer (event) {
       {},
       state,
       {
-        selectedTile: {location: 'hand', position: selectedTileIndex},
         draggingTile: tile
       }
     );
@@ -558,14 +556,13 @@ export default function App ({DOM, animation}) {
     .distinctUntilChanged(JSON.stringify)
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, enemies, score, draggingTile, mousePosition, attacks}) => (
+    DOM: state$.map(({board, hand, enemies, score, draggingTile, mousePosition, attacks}) => (
       div('.game', [
         renderHand(hand),
         div('.score', `Score: ${Math.round(score)}`),
         renderBoard(board),
         renderEnemies(enemies),
         renderAttacks(attacks),
-        div('.selected-tile-info',  JSON.stringify(selectedTile)),
         div('.game-over', base(board).health <= 0 ? 'Game over!' : ''),
         renderDraggingTile(draggingTile, mousePosition)
       ])
