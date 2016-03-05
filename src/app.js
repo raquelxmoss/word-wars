@@ -25,14 +25,19 @@ const initialState = {
   enemies: [],
   score: 0,
   draggingTile: null,
-  mousePosition: {x: 0, y: 0}
+  mousePosition: {x: 0, y: 0},
+  attacks: []
 };
 
-function Tile ({active = false, letter = '', health = 100} = {}) {
-  return {active, letter, health};
+function Tile ({active = false, letter = '', health = 100, maxHealth = 100} = {}) {
+  return {active, letter, health, maxHealth};
 }
 
-function renderTile (tile, baseHealth, coordinate) {
+function Attack ({start, end, displayTime = 500, maxDisplayTime = 500} = {}) {
+  return {start, end, displayTime, maxDisplayTime}
+}
+
+function renderTile (tile, coordinate) {
   const tileIsBase = tile.letter === '*';
   const position = coordinateToPosition(coordinate);
 
@@ -41,8 +46,12 @@ function renderTile (tile, baseHealth, coordinate) {
     left: position.x + 'px'
   };
 
+  if (tile.letter !== '') {
+    style.opacity = tile.health / tile.maxHealth
+  }
+
   if (tileIsBase) {
-    Object.assign(style, {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`});
+    Object.assign(style, {background: `rgb(0, 0, 240)`});
   }
 
   return (
@@ -63,6 +72,10 @@ function renderDraggingTile (tile, mousePosition) {
     position: 'absolute'
   };
 
+  if (tile.letter !== '') {
+    style.opacity = tile.health / tile.maxHealth
+  }
+
   return (
     div(
       `.tile ${tile.letter === '' ? '' : '.active'}`,
@@ -72,15 +85,15 @@ function renderDraggingTile (tile, mousePosition) {
   );
 }
 
-function renderRow (row, rowIndex, baseHealth) {
+function renderRow (row, rowIndex) {
   return (
-    div('.row', row.map((tile, column) => renderTile(tile, baseHealth, {row: rowIndex, column})))
+    div('.row', row.map((tile, column) => renderTile(tile, {row: rowIndex, column})))
   );
 }
 
-function renderBoard (board, baseHealth) {
+function renderBoard (board) {
   return (
-    div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex, baseHealth)))
+    div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex)))
   );
 }
 
@@ -106,6 +119,48 @@ function renderEnemies (enemies) {
   return (
     div('.enemies', enemies.map(renderEnemy))
   );
+}
+
+function renderAttacks (attacks) {
+  return (
+    div('.attacks', attacks.map(attack => line(attack.start, attack.end, attack)))
+  )
+}
+
+// http://stackoverflow.com/a/5912283
+function createAttackLine(x, y, length, angle, attack) {
+  const style = {
+    'border': '1px solid red',
+    'width': length + 'px',
+    'height': '0px',
+    '-moz-transform': 'rotate(' + angle + 'rad)',
+    '-webkit-transform': 'rotate(' + angle + 'rad)',
+    '-o-transform': 'rotate(' + angle + 'rad)',
+    '-ms-transform': 'rotate(' + angle + 'rad)',
+    'position': 'absolute',
+    'top': y + 'px',
+    'left': x + 'px',
+    'opacity': attack.displayTime / attack.maxDisplayTime
+  }
+
+  return div('.attack-line', {style})
+}
+
+// http://stackoverflow.com/a/5912283
+function line({x: x1, y: y1}, {x: x2, y: y2}, attack) {
+  var a = x1 - x2,
+      b = y1 - y2,
+      c = Math.sqrt(a * a + b * b);
+
+  var sx = (x1 + x2) / 2,
+      sy = (y1 + y2) / 2;
+
+  var x = sx - c / 2,
+      y = sy;
+
+  var angle = Math.PI - Math.atan2(-b, a);
+
+  return createAttackLine(x, y, c, angle, attack);
 }
 
 function makeSelectHandTileReducer (event) {
@@ -135,6 +190,9 @@ function makeDragBoardTileReducer (e) {
   const row = $(e.target).parent().index();
 
   return function dragBoardTile (state) {
+    if (state.board[row][column].letter === '') { return state }
+    if (state.board[row][column].letter === '*') { return state }
+
     state.draggingTile = state.board[row][column];
     state.board[row][column] = Tile();
 
@@ -247,14 +305,16 @@ function targetAndShootEnemy (state, tile, coordinate) {
     return;
   }
 
-  const potentialTargets = state.enemies.filter(enemy => {
-    const position = coordinateToPosition(coordinate);
+  const position = coordinateToPosition(coordinate);
 
+  const potentialTargets = state.enemies.filter(enemy => {
     return distance(enemy, position) < TILE_RANGE;
   });
 
   if (potentialTargets.length > 0) {
     const enemy = potentialTargets[0];
+
+    state.attacks.push(Attack({start: position, end: {x: enemy.x, y: enemy.y}}));
 
     enemy.health -= TILE_DAMAGE;
   }
@@ -304,6 +364,18 @@ function addScore (state, deltaTime) {
   return state;
 }
 
+function fadeOutAttacks (state, deltaTime) {
+  return Object.assign(
+    {},
+    state,
+    {
+      attacks: state.attacks
+        .map(attack => Object.assign({}, attack, {displayTime: attack.displayTime - deltaTime}))
+        .filter(attack => attack.displayTime > 0)
+    }
+  )
+}
+
 function makeUpdateReducer (deltaTime, basePosition) {
   return function update (startingState) {
     return [
@@ -311,7 +383,8 @@ function makeUpdateReducer (deltaTime, basePosition) {
       shootAtEnemies,
       removeDeadEnemies,
       removeDeadTiles,
-      addScore
+      addScore,
+      fadeOutAttacks
     ].reduce((state, updater) => updater(state, deltaTime, basePosition), startingState);
   };
 }
@@ -485,12 +558,13 @@ export default function App ({DOM, animation}) {
     .distinctUntilChanged(JSON.stringify)
 
   return {
-    DOM: state$.map(({board, hand, selectedTile, enemies, score, draggingTile, mousePosition}) => (
+    DOM: state$.map(({board, hand, selectedTile, enemies, score, draggingTile, mousePosition, attacks}) => (
       div('.game', [
         renderHand(hand),
         div('.score', `Score: ${Math.round(score)}`),
-        renderBoard(board, base(board).health),
+        renderBoard(board),
         renderEnemies(enemies),
+        renderAttacks(attacks),
         div('.selected-tile-info',  JSON.stringify(selectedTile)),
         div('.game-over', base(board).health <= 0 ? 'Game over!' : ''),
         renderDraggingTile(draggingTile, mousePosition)
