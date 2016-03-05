@@ -12,6 +12,6 @@ npm run bundle
 
 git commit -am "Update bundle"
 
-git push origin gh-pages
+git push origin gh-pages --force
 
 git checkout -
