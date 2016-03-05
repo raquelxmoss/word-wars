@@ -143,6 +143,9 @@ function makeDragBoardTileReducer (e) {
   const row = $(e.target).parent().index();
 
   return function dragBoardTile (state) {
+    if (state.board[row][column].letter === '') { return state }
+    if (state.board[row][column].letter === '*') { return state }
+
     state.draggingTile = state.board[row][column];
     state.board[row][column] = Tile();
 
