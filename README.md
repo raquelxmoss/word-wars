@@ -8,16 +8,16 @@ Word-building tower-defense game built with Cycle.js
  - [x] Add base to protect (centre square)
  - [x] Add enemies to attack base
  - [x] Letters are distributed according to Scrabble rules
- - [ ] Allow building words as defenses
+ - [x] Allow building words as defenses
   - [x] Check that a word is valid
   - [x] Check that a word is connected to the base!
   - [x] Letters that are part of a valid word should damage enemies
-  - [ ] Valid letters shoot visible bullets at enemies
+  - [x] Valid letters shoot visible bullets at enemies
 - [x] Enemies should path-find and attack defenses
   - [x] Enemies path find
   - [x] Enemies are stopped by active letters
   - [x] Enemies attack active letters in their way
   - [x] Recalculate enemy paths when a letter is moved or destroyed
   - [x] Re-enable letters attacking enemies
-- [ ] Drag and drop
+- [x] Drag and drop
 
