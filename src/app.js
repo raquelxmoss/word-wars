@@ -32,7 +32,7 @@ function Tile ({active = false, letter = '', health = 100, maxHealth = 100} = {}
   return {active, letter, health, maxHealth};
 }
 
-function renderTile (tile, baseHealth, coordinate) {
+function renderTile (tile, coordinate) {
   const tileIsBase = tile.letter === '*';
   const position = coordinateToPosition(coordinate);
 
@@ -80,15 +80,15 @@ function renderDraggingTile (tile, mousePosition) {
   );
 }
 
-function renderRow (row, rowIndex, baseHealth) {
+function renderRow (row, rowIndex) {
   return (
-    div('.row', row.map((tile, column) => renderTile(tile, baseHealth, {row: rowIndex, column})))
+    div('.row', row.map((tile, column) => renderTile(tile, {row: rowIndex, column})))
   );
 }
 
-function renderBoard (board, baseHealth) {
+function renderBoard (board) {
   return (
-    div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex, baseHealth)))
+    div('.board', board.map((row, rowIndex) => renderRow(row, rowIndex)))
   );
 }
 
@@ -497,7 +497,7 @@ export default function App ({DOM, animation}) {
       div('.game', [
         renderHand(hand),
         div('.score', `Score: ${Math.round(score)}`),
-        renderBoard(board, base(board).health),
+        renderBoard(board),
         renderEnemies(enemies),
         div('.selected-tile-info',  JSON.stringify(selectedTile)),
         div('.game-over', base(board).health <= 0 ? 'Game over!' : ''),
