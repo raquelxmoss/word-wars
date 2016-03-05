@@ -28,8 +28,8 @@ const initialState = {
   mousePosition: {x: 0, y: 0}
 };
 
-function Tile ({active = false, letter = '', health = 100} = {}) {
-  return {active, letter, health};
+function Tile ({active = false, letter = '', health = 100, maxHealth = 100} = {}) {
+  return {active, letter, health, maxHealth};
 }
 
 function renderTile (tile, baseHealth, coordinate) {
@@ -41,8 +41,12 @@ function renderTile (tile, baseHealth, coordinate) {
     left: position.x + 'px'
   };
 
+  if (tile.letter !== '') {
+    style.opacity = tile.health / tile.maxHealth
+  }
+
   if (tileIsBase) {
-    Object.assign(style, {background: `rgba(0, 0, 240, ${baseHealth / maxBaseHealth})`});
+    Object.assign(style, {background: `rgb(0, 0, 240)`});
   }
 
   return (
@@ -62,6 +66,10 @@ function renderDraggingTile (tile, mousePosition) {
     left: mousePosition.x + 'px',
     position: 'absolute'
   };
+
+  if (tile.letter !== '') {
+    style.opacity = tile.health / tile.maxHealth
+  }
 
   return (
     div(
