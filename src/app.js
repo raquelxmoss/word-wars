@@ -97,8 +97,16 @@ function renderBoard (board) {
 }
 
 function renderHand (hand) {
+  const position = coordinateToPosition({row: 14, column: 3});
+
+  const style = {
+    position: 'absolute',
+    left: position.x + 'px',
+    top: position.y + 50 + 'px'
+  };
+
   return (
-    div('.hand', hand.map(renderTile))
+    div('.hand', {style}, hand.map(renderTile))
   );
 }
 

@@ -18,7 +18,6 @@ html, body {
   display: flex;
   justify-content: center;
   margin: 0 auto;
-  height: 100%;
 }
 
 .selected {
@@ -28,7 +27,6 @@ html, body {
 .game {
   position: relative;
   width: 750px;
-  height: 100%;
   display: flex;
   justify-content: center;
   flex-direction: column;
@@ -71,11 +69,7 @@ html, body {
 }
 
 .hand {
-  position: absolute;
-  bottom: 10px;
   display: flex;
-
-  left: 160px;
 }
 
 .hand .tile {
