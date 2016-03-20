@@ -66,8 +66,8 @@ function renderDraggingTile (tile, mousePosition) {
   if (tile === null) { return }
 
   let style = {
-    top: mousePosition.y + 'px',
-    left: mousePosition.x + 'px',
+    top: mousePosition.y - TILE_HEIGHT / 2 + 'px',
+    left: mousePosition.x - TILE_WIDTH / 2 + 'px',
     position: 'absolute'
   };
 
@@ -208,7 +208,15 @@ function makeDragBoardTileReducer (e) {
 
 function makePlaceTileReducer (event) {
   return function placeTile (state) {
-    const {column, row} = positionToCoordinate(state.mousePosition);
+    let {column, row} = positionToCoordinate(state.mousePosition);
+
+    // TODO - improve hack fix for placing tiles off board
+
+    column = _.max([0, column]);
+    row = _.max([0, row]);
+
+    column = _.min([14, column]);
+    row = _.min([14, row]);
 
     if (state.draggingTile === null) {
       return state;
@@ -306,7 +314,7 @@ function positionToCoordinate ({x, y}) {
   };
 }
 
-function targetAndShootEnemy (state, tile, coordinate) {
+function targetAndShootEnemy (state, tile, coordinate, deltaTime) {
   if (!tile.active) {
     return;
   }
@@ -322,14 +330,14 @@ function targetAndShootEnemy (state, tile, coordinate) {
 
     state.attacks.push(Attack({start: position, end: {x: enemy.x, y: enemy.y}}));
 
-    enemy.health -= TILE_DAMAGE;
+    enemy.health -= TILE_DAMAGE * (deltaTime / 16);
   }
 }
 
 function shootAtEnemies (state, deltaTime, basePosition) {
   state.board.forEach((row, rowIndex) =>
     row.forEach((tile, column) =>
-      targetAndShootEnemy(state, tile, {row: rowIndex, column})
+      targetAndShootEnemy(state, tile, {row: rowIndex, column}, deltaTime)
     )
   );
 
@@ -473,17 +481,35 @@ function mousePosition (e, gamePosition) {
 }
 
 export default function App ({DOM, animation}) {
+  const touchHandTile$ = DOM
+    .select('.hand .tile')
+    .events('touchstart')
+    .do(ev => ev.preventDefault());
+
   const selectHandTile$ = DOM
     .select('.hand .tile')
-    .events('mousedown');
+    .events('mousedown')
+    .merge(touchHandTile$);
+
+  const touchBoardTile$ = DOM
+    .select('.board .tile')
+    .events('touchstart')
+    .do(ev => ev.preventDefault());
 
   const selectBoardTile$ = DOM
     .select('.board .tile')
-    .events('mousedown');
+    .events('mousedown')
+    .merge(touchBoardTile$);
+
+  const placeTileOnBoard$ = DOM
+    .select('.app *')
+    .events('mouseup');
 
   const dropTileOnBoard$ = DOM
     .select('.app *')
-    .events('mouseup')
+    .events('touchend')
+    .do(ev => ev.preventDefault())
+    .merge(placeTileOnBoard$);
 
   const basePosition$ = DOM
     .select('.base')
@@ -497,9 +523,15 @@ export default function App ({DOM, animation}) {
     .map(el => $(el).position())
     .take(1);
 
+  const touchPosition$ = DOM
+    .select('.app *')
+    .events('touchmove', true)
+    .map(ev => ev.touches[0]);
+
   const mousePosition$ = DOM
     .select('.app *')
     .events('mousemove', true)
+    .merge(touchPosition$)
     .withLatestFrom(gamePosition$, mousePosition)
 
   const updateMousePosition$ = mousePosition$
