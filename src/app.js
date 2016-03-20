@@ -7,6 +7,7 @@ import { Graph, astar } from 'javascript-astar';
 import validateBoard from './validate-board';
 import LetterBag from './letter-bag';
 import distance from './distance';
+import uuid from 'node-uuid';
 
 const board = _.range(0, 15).map(() =>
   _.range(0, 15).map(() => Tile())
@@ -118,7 +119,7 @@ function renderEnemy (enemy) {
   };
 
   return (
-    div('.enemy', {style})
+    div('.enemy', {key: enemy.id, style})
   );
 }
 
@@ -455,6 +456,7 @@ function makeSpawnEnemiesReducer () {
     const position = coordinateToPosition(spawnCoordinate);
 
     state.enemies.push({
+      id: uuid.v4(),
       x: position.x,
       y: position.y,
       health: 30,
